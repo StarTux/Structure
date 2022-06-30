@@ -1,0 +1,28 @@
+main: com.cavetale.structure.StructurePlugin
+
+name: Structure
+description: World Structure Cache
+
+version: 0.1
+api-version: 1.19
+
+author: StarTux
+website: https://github.com/StarTux/Structure
+
+depend: [Core]
+softdepend: []
+
+commands:
+
+  structure:
+    aliases: []
+    description: Structure Command
+    permission: structure.structure
+    usage: |-
+      /structure
+
+permissions:
+
+  structure.structure:
+    description: Use /structure
+    default: op

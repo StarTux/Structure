@@ -1,0 +1,3 @@
+# Structure
+
+Structure plugin.
