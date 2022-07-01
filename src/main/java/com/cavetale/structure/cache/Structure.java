@@ -7,7 +7,6 @@ import java.util.Map;
 import lombok.Data;
 import org.bukkit.StructureType;
 import org.bukkit.block.Block;
-import static java.util.Objects.requireNonNull;
 
 @Data
 public final class Structure {
