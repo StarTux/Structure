@@ -10,7 +10,7 @@ import org.bukkit.block.Block;
 
 @Data
 public final class Structure {
-    protected final StructureType type;
+    protected final String type;
     protected final Cuboid cuboid;
     protected final String world;
     protected final List<StructurePart> children = new ArrayList<>();
@@ -18,7 +18,7 @@ public final class Structure {
     @SuppressWarnings("unchecked")
     protected Structure(final String world, final String key, final Map<String, Object> structureMap) {
         this.world = world;
-        this.type = findStructureType(key);
+        this.type = key;
         List<Map<String, Object>> childMaps = (List<Map<String, Object>>) structureMap.get("Children");
         if (childMaps == null) throw new IllegalArgumentException("Missing children: " + structureMap);
         for (Map<String, Object> childMap : childMaps) {
@@ -42,10 +42,14 @@ public final class Structure {
         this.cuboid = new Cuboid(ax, ay, az, bx, by, bz);
     }
 
-    private static StructureType findStructureType(final String inkey) {
-        final String key = inkey.startsWith("minecraft:")
-            ? inkey.substring(10)
-            : inkey;
+    public String getName() {
+        return type;
+    }
+
+    public StructureType getStructureType() {
+        final String key = type.startsWith("minecraft:")
+            ? type.substring(10)
+            : type;
         StructureType result;
         result = StructureType.getStructureTypes().get(key);
         if (result != null) return result;
@@ -53,7 +57,7 @@ public final class Structure {
         String key2 = String.join("_", Arrays.copyOfRange(toks, 0, toks.length - 1));
         result = StructureType.getStructureTypes().get(key2);
         if (result != null) return result;
-        throw new IllegalArgumentException("StructureType=" + inkey);
+        return StructureType.STRONGHOLD; //???
     }
 
     public StructurePart getChildAt(int x, int y, int z) {

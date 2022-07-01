@@ -37,7 +37,7 @@ public final class StructureCommand extends AbstractCommand<StructurePlugin> {
         Structure structure = plugin.structureCache.at(block);
         String xyz = block.getX() + " " + block.getY() + " " + block.getZ();
         if (structure == null) throw new CommandWarn("No structure here: " + block.getWorld().getName() + " " + xyz);
-        player.sendMessage(text("Structure " + structure.getType().getName() + " (" + structure.getCuboid() + ") c=" + structure.getChildren().size(), AQUA));
+        player.sendMessage(text("Structure " + structure.getName() + " (" + structure.getCuboid() + ") c=" + structure.getChildren().size(), AQUA));
         for (StructurePart part : structure.getChildren()) {
             if (!part.getCuboid().contains(block)) continue;
             player.sendMessage(text("- StructurePart " + part.getId() + " (" + part.getCuboid() + ")", YELLOW));
@@ -63,7 +63,7 @@ public final class StructureCommand extends AbstractCommand<StructurePlugin> {
                                    block.getX() + r, block.getWorld().getMaxHeight(), block.getZ() + r);
         player.sendMessage(text("Finding structures within " + cuboid + ":", YELLOW));
         for (Structure structure : plugin.structureCache.within(player.getWorld().getName(), cuboid)) {
-            player.sendMessage(text("- Structure " + structure.getType().getName()
+            player.sendMessage(text("- Structure " + structure.getName()
                                     + " (" + structure.getCuboid() + ")"
                                     + " children=" + structure.getChildren().size()
                                     + " inside=" + structure.getCuboid().contains(block), AQUA));

@@ -14,7 +14,7 @@ public final class CoreStructures implements Structures {
     @Override
     public StructureType structureTypeAt(Block block) {
         Structure structure = plugin.structureCache.at(block);
-        return structure != null ? structure.getType() : null;
+        return structure != null ? structure.getStructureType() : null;
     }
 
     @Override
