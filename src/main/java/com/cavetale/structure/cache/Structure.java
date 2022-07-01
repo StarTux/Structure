@@ -42,16 +42,18 @@ public final class Structure {
         this.cuboid = new Cuboid(ax, ay, az, bx, by, bz);
     }
 
-    private static StructureType findStructureType(String key) {
-        if (key.startsWith("minecraft:")) key = key.substring(10);
+    private static StructureType findStructureType(final String inkey) {
+        final String key = inkey.startsWith("minecraft:")
+            ? inkey.substring(10)
+            : inkey;
         StructureType result;
         result = StructureType.getStructureTypes().get(key);
         if (result != null) return result;
         String[] toks = key.split("_");
-        key = String.join("_", Arrays.copyOfRange(toks, 0, toks.length - 1));
-        result = StructureType.getStructureTypes().get(key);
+        String key2 = String.join("_", Arrays.copyOfRange(toks, 0, toks.length - 1));
+        result = StructureType.getStructureTypes().get(key2);
         if (result != null) return result;
-        throw new IllegalArgumentException("StructureType=" + key);
+        throw new IllegalArgumentException("StructureType=" + inkey);
     }
 
     public StructurePart getChildAt(int x, int y, int z) {

@@ -39,8 +39,8 @@ public final class StructureCache {
                     Structure structure;
                     try {
                         structure = new Structure(world.getName(), structureName, (Map<String, Object>) structureMap);
-                    } catch (IllegalArgumentException iaee) {
-                        iaee.printStackTrace();
+                    } catch (IllegalArgumentException iae) {
+                        iae.printStackTrace();
                         continue;
                     }
                     add(structure);
