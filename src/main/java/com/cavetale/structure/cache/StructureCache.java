@@ -33,7 +33,13 @@ public final class StructureCache {
                 if (line == null) break;
                 Map<String, Object> map = (Map<String, Object>) Json.deserialize(line, Map.class);
                 for (Map.Entry<String, Object> entry : map.entrySet()) {
-                    Structure structure = new Structure(world.getName(), entry.getKey(), (Map<String, Object>) entry.getValue());
+                    Structure structure;
+                    try {
+                        structure = new Structure(world.getName(), entry.getKey(), (Map<String, Object>) entry.getValue());
+                    } catch (IllegalArgumentException iaee) {
+                        iaee.printStackTrace();
+                        continue;
+                    }
                     add(structure);
                     count += 1;
                 }

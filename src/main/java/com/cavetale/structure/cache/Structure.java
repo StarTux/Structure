@@ -20,7 +20,9 @@ public final class Structure {
     protected Structure(final String world, final String key, final Map<String, Object> structureMap) {
         this.world = world;
         this.type = findStructureType(key);
-        for (Map<String, Object> childMap : (List<Map<String, Object>>) requireNonNull(structureMap.get("Children"))) {
+        List<Map<String, Object>> childMaps = (List<Map<String, Object>>) structureMap.get("Children");
+        if (childMaps == null) throw new IllegalArgumentException("Missing children: " + structureMap);
+        for (Map<String, Object> childMap : childMaps) {
             StructurePart part = new StructurePart(childMap);
             children.add(part);
         }
