@@ -1,24 +1,27 @@
 package com.cavetale.structure.cache;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import lombok.Data;
-import org.bukkit.StructureType;
+import org.bukkit.Keyed;
+import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
 
 @Data
-public final class Structure {
-    protected final String type;
+public final class Structure implements Keyed {
+    protected final String name;
+    protected final NamespacedKey key;
     protected final Cuboid cuboid;
     protected final String world;
     protected final List<StructurePart> children = new ArrayList<>();
 
     @SuppressWarnings("unchecked")
-    protected Structure(final String world, final String key, final Map<String, Object> structureMap) {
+    protected Structure(final String world, final String name, final Map<String, Object> structureMap) {
         this.world = world;
-        this.type = key;
+        this.name = name;
+        this.key = NamespacedKey.fromString(name);
+        if (this.key == null) throw new IllegalArgumentException("Invalid key: " + key);
         List<Map<String, Object>> childMaps = (List<Map<String, Object>>) structureMap.get("Children");
         if (childMaps == null) throw new IllegalArgumentException("Missing children: " + structureMap);
         for (Map<String, Object> childMap : childMaps) {
@@ -42,24 +45,6 @@ public final class Structure {
         this.cuboid = new Cuboid(ax, ay, az, bx, by, bz);
     }
 
-    public String getName() {
-        return type;
-    }
-
-    public StructureType getStructureType() {
-        final String key = type.startsWith("minecraft:")
-            ? type.substring(10)
-            : type;
-        StructureType result;
-        result = StructureType.getStructureTypes().get(key);
-        if (result != null) return result;
-        String[] toks = key.split("_");
-        String key2 = String.join("_", Arrays.copyOfRange(toks, 0, toks.length - 1));
-        result = StructureType.getStructureTypes().get(key2);
-        if (result != null) return result;
-        return StructureType.STRONGHOLD; //???
-    }
-
     public StructurePart getChildAt(int x, int y, int z) {
         for (StructurePart child : children) {
             if (child.cuboid.contains(x, y, z)) return child;
@@ -69,5 +54,10 @@ public final class Structure {
 
     public StructurePart getChildAt(Block block) {
         return getChildAt(block.getX(), block.getY(), block.getZ());
+    }
+
+    @Override
+    public NamespacedKey getKey() {
+        return key;
     }
 }

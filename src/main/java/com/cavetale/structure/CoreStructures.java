@@ -4,7 +4,7 @@ import com.cavetale.core.structure.Structures;
 import com.cavetale.structure.cache.Structure;
 import com.cavetale.structure.cache.StructurePart;
 import lombok.RequiredArgsConstructor;
-import org.bukkit.StructureType;
+import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
 
 @RequiredArgsConstructor
@@ -12,9 +12,9 @@ public final class CoreStructures implements Structures {
     private final StructurePlugin plugin;
 
     @Override
-    public StructureType structureTypeAt(Block block) {
+    public NamespacedKey structureKeyAt(Block block) {
         Structure structure = plugin.structureCache.at(block);
-        return structure != null ? structure.getStructureType() : null;
+        return structure != null ? structure.getKey() : null;
     }
 
     @Override
