@@ -10,12 +10,14 @@ import org.bukkit.event.world.WorldUnloadEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class StructurePlugin extends JavaPlugin implements Listener {
+    private static StructurePlugin instance;
     protected final StructureCache structureCache = new StructureCache();
     private final StructureCommand structureCommand = new StructureCommand(this);
     private final CoreStructures coreStructures = new CoreStructures(this);
 
     @Override
     public void onLoad() {
+        instance = this;
         coreStructures.register();
     }
 
@@ -44,5 +46,9 @@ public final class StructurePlugin extends JavaPlugin implements Listener {
     @EventHandler
     private void onWorldUnload(WorldUnloadEvent event) {
         structureCache.unload(event.getWorld());
+    }
+
+    public static StructureCache structureCache() {
+        return instance.structureCache;
     }
 }
