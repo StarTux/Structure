@@ -10,17 +10,18 @@ import org.bukkit.block.Block;
 
 @Data
 public final class Structure implements Keyed {
-    protected final String name;
-    protected final NamespacedKey key;
-    protected final Cuboid cuboid;
+    /** The index is unique per world and storage file. */
+    protected final int id;
     protected final String world;
+    protected final NamespacedKey key;
+    protected final Cuboid boundingBox;
     protected final List<StructurePart> children = new ArrayList<>();
 
     @SuppressWarnings("unchecked")
-    protected Structure(final String world, final String name, final Map<String, Object> structureMap) {
+    protected Structure(final int id, final String world, final Map<String, Object> structureMap) {
+        this.id = id;
         this.world = world;
-        this.name = name;
-        this.key = NamespacedKey.fromString(name);
+        this.key = NamespacedKey.fromString((String) structureMap.get("id"));
         if (this.key == null) throw new IllegalArgumentException("Invalid key: " + key);
         List<Map<String, Object>> childMaps = (List<Map<String, Object>>) structureMap.get("Children");
         if (childMaps == null) throw new IllegalArgumentException("Missing children: " + structureMap);
@@ -28,26 +29,26 @@ public final class Structure implements Keyed {
             StructurePart part = new StructurePart(childMap);
             children.add(part);
         }
-        int ax = children.get(0).cuboid.ax;
-        int ay = children.get(0).cuboid.ay;
-        int az = children.get(0).cuboid.az;
-        int bx = children.get(0).cuboid.bx;
-        int by = children.get(0).cuboid.by;
-        int bz = children.get(0).cuboid.bz;
+        int ax = children.get(0).boundingBox.ax;
+        int ay = children.get(0).boundingBox.ay;
+        int az = children.get(0).boundingBox.az;
+        int bx = children.get(0).boundingBox.bx;
+        int by = children.get(0).boundingBox.by;
+        int bz = children.get(0).boundingBox.bz;
         for (StructurePart child : children) {
-            ax = Math.min(ax, child.cuboid.ax);
-            ay = Math.min(ay, child.cuboid.ay);
-            az = Math.min(az, child.cuboid.az);
-            bx = Math.max(bx, child.cuboid.bx);
-            by = Math.max(by, child.cuboid.by);
-            bz = Math.max(bz, child.cuboid.bz);
+            ax = Math.min(ax, child.boundingBox.ax);
+            ay = Math.min(ay, child.boundingBox.ay);
+            az = Math.min(az, child.boundingBox.az);
+            bx = Math.max(bx, child.boundingBox.bx);
+            by = Math.max(by, child.boundingBox.by);
+            bz = Math.max(bz, child.boundingBox.bz);
         }
-        this.cuboid = new Cuboid(ax, ay, az, bx, by, bz);
+        this.boundingBox = new Cuboid(ax, ay, az, bx, by, bz);
     }
 
     public StructurePart getChildAt(int x, int y, int z) {
         for (StructurePart child : children) {
-            if (child.cuboid.contains(x, y, z)) return child;
+            if (child.boundingBox.contains(x, y, z)) return child;
         }
         return null;
     }
@@ -59,5 +60,9 @@ public final class Structure implements Keyed {
     @Override
     public NamespacedKey getKey() {
         return key;
+    }
+
+    public boolean isVanilla() {
+        return key.getNamespace().equals("minecraft");
     }
 }

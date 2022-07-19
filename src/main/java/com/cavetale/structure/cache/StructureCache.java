@@ -20,25 +20,30 @@ import org.bukkit.command.CommandSender;
 public final class StructureCache {
     protected final Map<String, SpatialStructureCache> worlds = new HashMap<>();
 
-    @SuppressWarnings("unchecked")
     public int load(World world) {
+        worlds.put(world.getName(), new SpatialStructureCache());
+        int total = 0;
+        for (String textFile : List.of("structures.txt", "dungeons.txt")) {
+            total += loadTextFile(world, textFile);
+        }
+        return total;
+    }
+
+    @SuppressWarnings("unchecked")
+    private int loadTextFile(World world, String textFile) {
         File file = new File(world.getWorldFolder(), "structures.txt");
         if (!file.exists()) return 0;
-        worlds.put(world.getName(), new SpatialStructureCache());
         int count = 0;
         try (BufferedReader in = new BufferedReader(new FileReader(file))) {
             String line;
-            while (true) {
-                line = in.readLine();
-                if (line == null) break;
+            while ((line = in.readLine()) != null) {
                 Map<String, Object> map = (Map<String, Object>) Json.deserialize(line, Map.class);
                 for (Map.Entry<String, Object> entry : map.entrySet()) {
-                    String structureName = entry.getKey();
                     if (!(entry.getValue() instanceof Map structureMap)) continue;
                     if (!structureMap.containsKey("id") || "INVALID".equals(structureMap.get("id"))) continue;
                     Structure structure;
                     try {
-                        structure = new Structure(world.getName(), structureName, (Map<String, Object>) structureMap);
+                        structure = new Structure(count, world.getName(), (Map<String, Object>) structureMap);
                     } catch (IllegalArgumentException iae) {
                         iae.printStackTrace();
                         continue;
@@ -79,7 +84,7 @@ public final class StructureCache {
 
     public Structure at(Block block) {
         Structure structure = at(block.getWorld().getName(), block.getX(), block.getY(), block.getZ());
-        return structure != null && structure.cuboid.contains(block)
+        return structure != null && structure.boundingBox.contains(block)
             ? structure
             : null;
     }

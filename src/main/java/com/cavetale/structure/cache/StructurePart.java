@@ -8,11 +8,11 @@ import static java.util.Objects.requireNonNull;
 @Data
 public final class StructurePart {
     protected final String id;
-    protected final Cuboid cuboid;
+    protected final Cuboid boundingBox;
 
     @SuppressWarnings("unchecked")
     protected StructurePart(final Map<String, Object> partMap) {
         this.id = (String) requireNonNull(partMap.get("id"));
-        this.cuboid = Cuboid.of((List<Number>) requireNonNull(partMap.get("BB")));
+        this.boundingBox = Cuboid.of((List<Number>) requireNonNull(partMap.get("BB")));
     }
 }

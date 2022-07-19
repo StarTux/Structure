@@ -37,10 +37,10 @@ public final class StructureCommand extends AbstractCommand<StructurePlugin> {
         Structure structure = plugin.structureCache.at(block);
         String xyz = block.getX() + " " + block.getY() + " " + block.getZ();
         if (structure == null) throw new CommandWarn("No structure here: " + block.getWorld().getName() + " " + xyz);
-        player.sendMessage(text("Structure " + structure.getName() + " (" + structure.getCuboid() + ") c=" + structure.getChildren().size(), AQUA));
+        player.sendMessage(text("Structure " + structure.getKey() + " (" + structure.getBoundingBox() + ") c=" + structure.getChildren().size(), AQUA));
         for (StructurePart part : structure.getChildren()) {
-            if (!part.getCuboid().contains(block)) continue;
-            player.sendMessage(text("- StructurePart " + part.getId() + " (" + part.getCuboid() + ")", YELLOW));
+            if (!part.getBoundingBox().contains(block)) continue;
+            player.sendMessage(text("- StructurePart " + part.getId() + " (" + part.getBoundingBox() + ")", YELLOW));
         }
     }
 
@@ -49,10 +49,10 @@ public final class StructureCommand extends AbstractCommand<StructurePlugin> {
         Structure structure = plugin.structureCache.at(block);
         String xyz = block.getX() + " " + block.getY() + " " + block.getZ();
         if (structure == null) throw new CommandWarn("No structure here: " + block.getWorld().getName() + " " + xyz);
-        structure.getCuboid().highlight(player.getWorld(), 0.0, loc -> player.spawnParticle(Particle.VILLAGER_HAPPY, loc, 1, 0.0, 0.0, 0.0, 0.0));
+        structure.getBoundingBox().highlight(player.getWorld(), 0.0, loc -> player.spawnParticle(Particle.VILLAGER_HAPPY, loc, 1, 0.0, 0.0, 0.0, 0.0));
         player.sendMessage(text("Highlighting " + structure.getChildren().size() + " parts"));
         for (StructurePart part : structure.getChildren()) {
-            part.getCuboid().highlight(player.getWorld(), 0.0, loc -> player.spawnParticle(Particle.END_ROD, loc, 1, 0.0, 0.0, 0.0, 0.0));
+            part.getBoundingBox().highlight(player.getWorld(), 0.0, loc -> player.spawnParticle(Particle.END_ROD, loc, 1, 0.0, 0.0, 0.0, 0.0));
         }
     }
 
@@ -63,10 +63,10 @@ public final class StructureCommand extends AbstractCommand<StructurePlugin> {
                                    block.getX() + r, block.getWorld().getMaxHeight(), block.getZ() + r);
         player.sendMessage(text("Finding structures within " + cuboid + ":", YELLOW));
         for (Structure structure : plugin.structureCache.within(player.getWorld().getName(), cuboid)) {
-            player.sendMessage(text("- Structure " + structure.getName()
-                                    + " (" + structure.getCuboid() + ")"
+            player.sendMessage(text("- Structure " + structure.getKey()
+                                    + " (" + structure.getBoundingBox() + ")"
                                     + " children=" + structure.getChildren().size()
-                                    + " inside=" + structure.getCuboid().contains(block), AQUA));
+                                    + " inside=" + structure.getBoundingBox().contains(block), AQUA));
         }
     }
 

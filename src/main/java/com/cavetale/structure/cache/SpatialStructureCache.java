@@ -13,18 +13,18 @@ final class SpatialStructureCache {
     protected final List<Structure> allStructures = new ArrayList<>();
 
     public void insert(Structure structure) {
-        applySlots(structure.getCuboid(), true, slot -> slot.structures.add(structure));
+        applySlots(structure.boundingBox, true, slot -> slot.structures.add(structure));
         allStructures.add(structure);
     }
 
     public void remove(Structure structure) {
-        applySlots(structure.getCuboid(), false, slot -> slot.structures.remove(structure));
+        applySlots(structure.boundingBox, false, slot -> slot.structures.remove(structure));
         allStructures.remove(structure);
     }
 
     public void update(Structure structure, Cuboid oldCuboid, Cuboid newCuboid) {
-        applySlots(structure.getCuboid(), false, slot -> slot.structures.remove(structure));
-        applySlots(structure.getCuboid(), true, slot -> slot.structures.add(structure));
+        applySlots(structure.boundingBox, false, slot -> slot.structures.remove(structure));
+        applySlots(structure.boundingBox, true, slot -> slot.structures.add(structure));
     }
 
     public Structure findStructureAt(int worldX, int worldY, int worldZ) {
@@ -33,7 +33,7 @@ final class SpatialStructureCache {
         Slot slot = findSlot(slotX, slotY, false);
         if (slot == null) return null;
         for (Structure structure : slot.structures) {
-            if (structure.cuboid.contains(worldX, worldY, worldZ)) return structure;
+            if (structure.boundingBox.contains(worldX, worldY, worldZ)) return structure;
         }
         return null;
     }
@@ -49,7 +49,7 @@ final class SpatialStructureCache {
                 Slot slot = findSlot(x, y, false);
                 if (slot == null) continue;
                 for (Structure structure : slot.structures) {
-                    if (!result.contains(structure) && cuboid.overlaps(structure.getCuboid())) {
+                    if (!result.contains(structure) && cuboid.overlaps(structure.boundingBox)) {
                         result.add(structure);
                     }
                 }
