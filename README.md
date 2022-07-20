@@ -1,14 +1,16 @@
 # Structure
 
-World Structure Cache.  This plugin will look for the structures.txt
-file in each world folder.  This file must be generated via NBTDump,
-for example:
+World Structure Cache.  This plugin will look for the structures.db
+database file in each world folder.  This file is be generated via
+NBTDump, for example:
 
-- `java -jar NBTDump.jar -s -g structures.starts region/r.*.mca > structures.txt`
+- `java -jar NBTDump.jar --structures world`
 
-Thus, the file will contain one line per chunk.  Each line is a JSON
-object, mapping structure namespaced keys to structure objects.  This
-plugin will figure out the types and bounding boxes and provide them
-via its Core API.
+Client plugins can add their own structures to the database.
 
-- See `com.cavetale.core.structure.Structures`
+```java
+import static com.cavetale.structure.StructurePlugin.structureCache;
+
+Structure structure = structureCache().at(block);
+List<Structure> structures = structureCache().within(worldName, cuboid);
+```

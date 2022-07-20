@@ -10,10 +10,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
 import static com.cavetale.structure.StructurePlugin.log;
 import static com.cavetale.structure.StructurePlugin.warn;
+import static java.util.Objects.requireNonNull;
 
 @RequiredArgsConstructor
 public final class StructureWorld {
@@ -29,12 +31,27 @@ public final class StructureWorld {
         File worldFolder = world.getWorldFolder();
         File sqliteFile = new File(worldFolder, "structures.db");
         if (sqliteFile.exists()) {
-            dataStore = new SQLiteDataStore(sqliteFile);
+            dataStore = new SQLiteDataStore(worldName, sqliteFile);
             dataStore.enable();
             log("[" + worldName + "] Data store enabled");
         } else {
             warn("[" + worldName + "] Data store not found");
         }
+    }
+
+    /**
+     * This class is lazy with the generation of the data store.  When
+     * no file is found, the data store will never be created.  This
+     * method asserts that it exists and is ready.
+     */
+    protected SQLiteDataStore getOrCreateDataStore() {
+        if (dataStore == null) {
+            World world = requireNonNull(Bukkit.getWorld(worldName));
+            dataStore = new SQLiteDataStore(worldName, new File(world.getWorldFolder(), "structures.db"));
+            dataStore.enable();
+            log("[" + worldName + "] Data store enabled");
+        }
+        return dataStore;
     }
 
     protected void disable() {
@@ -108,7 +125,7 @@ public final class StructureWorld {
 
     protected Structure loadStructure(int id) {
         return dataStore != null
-            ? new Structure(dataStore.getStructure(id), worldName)
+            ? dataStore.getStructure(id)
             : null;
     }
 
@@ -155,5 +172,23 @@ public final class StructureWorld {
                 }
             }
         }
+    }
+
+    protected void addStructure(Structure structure) {
+        List<Vec2i> regions = getOrCreateDataStore().addStructure(structure);
+        for (Vec2i region : regions) {
+            StructureRegion structureRegion = regionCache.get(region);
+            if (structureRegion != null) {
+                structureRegion.structures.add(structure);
+                structure.referenceCount += 1;
+            }
+        }
+        if (structure.referenceCount > 0) {
+            structureCache.put(structure.getId(), structure);
+        }
+    }
+
+    protected void updateStructure(Structure structure) {
+        getOrCreateDataStore().updateStructureJson(structure);
     }
 }

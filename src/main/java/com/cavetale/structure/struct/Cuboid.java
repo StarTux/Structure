@@ -140,4 +140,8 @@ public final class Cuboid {
         boolean z = other.az <= this.bz && other.bz >= this.az;
         return x && y && z;
     }
+
+    public Cuboid outset(int dx, int dy, int dz) {
+        return new Cuboid(ax - dx, ay - dy, az - dz, bx + dx, by + dy, bz + dz);
+    }
 }

@@ -41,6 +41,9 @@ public final class StructureCommand extends AbstractCommand<StructurePlugin> {
             if (!part.getBoundingBox().contains(block)) continue;
             player.sendMessage(text("- StructurePart " + part.getId() + " (" + part.getBoundingBox() + ")", YELLOW));
         }
+        if (!structure.isVanilla()) {
+            player.sendMessage(text("json=" + structure.getJson(), YELLOW));
+        }
     }
 
     protected void highlight(Player player) {

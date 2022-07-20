@@ -1,5 +1,8 @@
 package com.cavetale.structure.sqlite;
 
+import com.cavetale.structure.cache.Structure;
+import com.cavetale.structure.struct.Cuboid;
+import com.cavetale.structure.struct.Vec2i;
 import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -11,14 +14,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import lombok.RequiredArgsConstructor;
+import org.bukkit.NamespacedKey;
 import static com.cavetale.structure.StructurePlugin.logger;
 
 @RequiredArgsConstructor
 public final class SQLiteDataStore {
+    private final String worldName;
     private final File databaseFile;
     private Connection connection;
     private PreparedStatement stmtFindStructureRef;
     private PreparedStatement stmtFindStructure;
+    private PreparedStatement stmtInsertStructure;
+    private PreparedStatement stmtUpdateStructure;
     private Statement stmt;
 
     public void enable() {
@@ -60,6 +67,11 @@ public final class SQLiteDataStore {
             stmt = connection.createStatement();
             stmtFindStructureRef = connection.prepareStatement("SELECT * FROM `struct_refs` WHERE `region_x` = ? AND `region_z` = ?");
             stmtFindStructure = connection.prepareStatement("SELECT * FROM `structures` WHERE `id` = ?");
+            stmtInsertStructure = connection.prepareStatement("INSERT INTO `structures`"
+                                                              + " (`type`, `chunk_x`, `chunk_z`, `ax`, `ay`, `az`, `bx`, `by`, `bz`, `json`)"
+                                                              + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                                                              Statement.RETURN_GENERATED_KEYS);
+            stmtUpdateStructure = connection.prepareStatement("UPDATE `structures` SET `json` = ? WHERE `id` = ?");
         } catch (SQLException sqle) {
             throw new IllegalStateException(sqle);
         }
@@ -67,18 +79,12 @@ public final class SQLiteDataStore {
 
     public void disable() {
         try {
-            if (stmtFindStructureRef != null) {
-                stmtFindStructureRef.close();
-                stmtFindStructureRef = null;
-            }
-            if (stmt != null) {
-                stmt.close();
-                stmt = null;
-            }
-            if (connection != null) {
-                connection.close();
-                connection = null;
-            }
+            stmtFindStructureRef.close();
+            stmtFindStructure.close();
+            stmtInsertStructure.close();
+            stmtUpdateStructure.close();
+            stmt.close();
+            connection.close();
         } catch (SQLException sqle) {
             logger().log(Level.SEVERE, "", sqle);
         }
@@ -104,22 +110,24 @@ public final class SQLiteDataStore {
         }
     }
 
-    public SQLStructure getStructure(int id) {
+    public Structure getStructure(int id) {
         try {
             stmtFindStructure.setInt(1, id);
             try (ResultSet resultSet = stmtFindStructure.executeQuery()) {
                 if (resultSet.next()) {
-                    return new SQLStructure(resultSet.getInt("id"),
-                                            resultSet.getString("type"),
-                                            resultSet.getInt("chunk_x"),
-                                            resultSet.getInt("chunk_z"),
-                                            resultSet.getInt("ax"),
-                                            resultSet.getInt("ay"),
-                                            resultSet.getInt("az"),
-                                            resultSet.getInt("bx"),
-                                            resultSet.getInt("by"),
-                                            resultSet.getInt("bz"),
-                                            resultSet.getString("json"));
+                    Structure structure = new Structure(worldName,
+                                                        NamespacedKey.fromString(resultSet.getString("type")),
+                                                        Vec2i.of(resultSet.getInt("chunk_x"),
+                                                                 resultSet.getInt("chunk_z")),
+                                                        new Cuboid(resultSet.getInt("ax"),
+                                                                   resultSet.getInt("ay"),
+                                                                   resultSet.getInt("az"),
+                                                                   resultSet.getInt("bx"),
+                                                                   resultSet.getInt("by"),
+                                                                   resultSet.getInt("bz")),
+                                                        resultSet.getString("json"));
+                    structure.setId(resultSet.getInt("id"));
+                    return structure;
                 } else {
                     return null;
                 }
@@ -129,24 +137,26 @@ public final class SQLiteDataStore {
         }
     }
 
-    public List<SQLStructure> getStructures(List<Integer> ids) {
+    public List<Structure> getStructures(List<Integer> ids) {
         if (ids.isEmpty()) return List.of();
-        List<SQLStructure> list = new ArrayList<>();
+        List<Structure> list = new ArrayList<>();
         List<String> idStrings = new ArrayList<>(ids.size());
         for (int id : ids) idStrings.add("" + id);
         try (ResultSet resultSet = stmt.executeQuery("SELECT * FROM `structures` WHERE `id` IN (" + String.join(", ", idStrings) + ")")) {
             while (resultSet.next()) {
-                list.add(new SQLStructure(resultSet.getInt("id"),
-                                          resultSet.getString("type"),
-                                          resultSet.getInt("chunk_x"),
-                                          resultSet.getInt("chunk_z"),
-                                          resultSet.getInt("ax"),
-                                          resultSet.getInt("ay"),
-                                          resultSet.getInt("az"),
-                                          resultSet.getInt("bx"),
-                                          resultSet.getInt("by"),
-                                          resultSet.getInt("bz"),
-                                          resultSet.getString("json")));
+                Structure structure = new Structure(worldName,
+                                                    NamespacedKey.fromString(resultSet.getString("type")),
+                                                    Vec2i.of(resultSet.getInt("chunk_x"),
+                                                             resultSet.getInt("chunk_z")),
+                                                    new Cuboid(resultSet.getInt("ax"),
+                                                               resultSet.getInt("ay"),
+                                                               resultSet.getInt("az"),
+                                                               resultSet.getInt("bx"),
+                                                               resultSet.getInt("by"),
+                                                               resultSet.getInt("bz")),
+                                                    resultSet.getString("json"));
+                structure.setId(resultSet.getInt("id"));
+                list.add(structure);
             }
         } catch (SQLException sqle) {
             throw new IllegalStateException(sqle);
@@ -154,7 +164,57 @@ public final class SQLiteDataStore {
         return list;
     }
 
-    public List<SQLStructure> getStructures(int x, int z) {
+    public List<Structure> getStructures(int x, int z) {
         return getStructures(getStructureRefs(x, z));
+    }
+
+    public List<Vec2i> addStructure(Structure structure) {
+        try {
+            stmtInsertStructure.setString(1, structure.getKey().toString());
+            stmtInsertStructure.setInt(2, structure.getChunk().getX());
+            stmtInsertStructure.setInt(3, structure.getChunk().getZ());
+            Cuboid cuboid = structure.getBoundingBox();
+            stmtInsertStructure.setInt(4, cuboid.ax);
+            stmtInsertStructure.setInt(5, cuboid.ay);
+            stmtInsertStructure.setInt(6, cuboid.az);
+            stmtInsertStructure.setInt(7, cuboid.bx);
+            stmtInsertStructure.setInt(8, cuboid.by);
+            stmtInsertStructure.setInt(9, cuboid.bz);
+            stmtInsertStructure.setString(10, structure.getJson());
+            final int structureId;
+            stmtInsertStructure.executeUpdate();
+            try (ResultSet generatedKeys = stmtInsertStructure.getGeneratedKeys()) {
+                if (!generatedKeys.next()) throw new IllegalStateException("No id: " + structure);
+                structureId = generatedKeys.getInt(1);
+                structure.setId(structureId);
+            }
+            // Reference
+            final int cax = cuboid.ax >> 9;
+            final int caz = cuboid.az >> 9;
+            final int cbx = cuboid.bx >> 9;
+            final int cbz = cuboid.bz >> 9;
+            List<String> values = new ArrayList<>();
+            List<Vec2i> result = new ArrayList<>();
+            for (int cz = caz; cz <= cbz; cz += 1) {
+                for (int cx = cax; cx <= cbx; cx += 1) {
+                    values.add("(" + structureId + "," + cx + "," + cz + ")");
+                    result.add(Vec2i.of(cx, cz));
+                }
+            }
+            stmt.execute("INSERT INTO `struct_refs` (`structure_id`, `region_x`, `region_z`) VALUES " + String.join(", ", values));
+            return result;
+        } catch (SQLException sqle) {
+            throw new IllegalStateException(sqle);
+        }
+    }
+
+    public void updateStructureJson(Structure structure) {
+        try {
+            stmtUpdateStructure.setString(1, structure.getJson());
+            stmtUpdateStructure.setInt(2, structure.getId());
+            stmtUpdateStructure.executeUpdate();
+        } catch (SQLException sqle) {
+            throw new IllegalStateException(sqle);
+        }
     }
 }

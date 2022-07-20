@@ -2,9 +2,11 @@ package com.cavetale.structure.cache;
 
 import com.cavetale.structure.struct.Cuboid;
 import com.cavetale.structure.struct.Vec3i;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 
@@ -49,11 +51,39 @@ public final class StructureCache {
             : List.of();
     }
 
+    public List<Structure> within(String worldName, Cuboid cuboid, NamespacedKey key) {
+        StructureWorld sworld = worlds.get(worldName);
+        if (sworld == null) return List.of();
+        List<Structure> result = new ArrayList<>();
+        for (Structure structure : sworld.within(cuboid)) {
+            if (key.equals(structure.getKey())) {
+                result.add(structure);
+            }
+        }
+        return result;
+    }
+
     public void onChunkLoad(String worldName, int chunkX, int chunkZ) {
         worlds.get(worldName).loadChunk(chunkX, chunkZ);
     }
 
     public void onChunkUnload(String worldName, int chunkX, int chunkZ) {
         worlds.get(worldName).unloadChunk(chunkX, chunkZ);
+    }
+
+    public void addStructure(Structure structure) {
+        StructureWorld structureWorld = worlds.get(structure.getWorld());
+        if (structureWorld == null) throw new IllegalStateException("World not found: " + structure);
+        structureWorld.addStructure(structure);
+    }
+
+    /**
+     * Save the new JSON data to database.
+     * Usually called by Structure#saveJsonData().
+     */
+    public void updateStructure(Structure structure) {
+        StructureWorld structureWorld = worlds.get(structure.getWorld());
+        if (structureWorld == null) throw new IllegalStateException("World not found: " + structure);
+        structureWorld.updateStructure(structure);
     }
 }
