@@ -1,4 +1,4 @@
-package com.cavetale.structure.cache;
+package com.cavetale.structure.struct;
 
 import lombok.Value;
 import org.bukkit.World;
@@ -11,6 +11,10 @@ public final class Vec3i {
     public final int x;
     public final int y;
     public final int z;
+
+    public static Vec3i of(int nx, int ny, int nz) {
+        return new Vec3i(nx, ny, nz);
+    }
 
     public static Vec3i of(Block block) {
         return new Vec3i(block.getX(), block.getY(), block.getZ());

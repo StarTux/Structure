@@ -1,128 +1,59 @@
 package com.cavetale.structure.cache;
 
-import com.cavetale.core.util.Json;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.util.Collections;
+import com.cavetale.structure.struct.Cuboid;
+import com.cavetale.structure.struct.Vec3i;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.bukkit.World;
 import org.bukkit.block.Block;
-import org.bukkit.command.CommandSender;
 
 /**
- * Store all structures in one world for fast spatial lookup.  This
- * contaier is NOT aware of mirror worlds!
+ * World container.
  */
 public final class StructureCache {
-    protected final Map<String, SpatialStructureCache> worlds = new HashMap<>();
+    private final Map<String, StructureWorld> worlds = new HashMap<>();
 
-    public int load(World world) {
-        worlds.put(world.getName(), new SpatialStructureCache());
-        int total = 0;
-        for (String textFile : List.of("structures.txt", "dungeons.txt")) {
-            total += loadTextFile(world, textFile);
+    public void enable(World world) {
+        StructureWorld structureWorld = new StructureWorld(world.getName());
+        structureWorld.enable(world);
+        worlds.put(world.getName(), structureWorld);
+    }
+
+    public void disable(World world) {
+        worlds.remove(world.getName()).disable();
+    }
+
+    public void disable() {
+        for (StructureWorld it : worlds.values()) {
+            it.disable();
         }
-        return total;
-    }
-
-    @SuppressWarnings("unchecked")
-    private int loadTextFile(World world, String textFile) {
-        File file = new File(world.getWorldFolder(), "structures.txt");
-        if (!file.exists()) return 0;
-        int count = 0;
-        try (BufferedReader in = new BufferedReader(new FileReader(file))) {
-            String line;
-            while ((line = in.readLine()) != null) {
-                Map<String, Object> map = (Map<String, Object>) Json.deserialize(line, Map.class);
-                for (Map.Entry<String, Object> entry : map.entrySet()) {
-                    if (!(entry.getValue() instanceof Map structureMap)) continue;
-                    if (!structureMap.containsKey("id") || "INVALID".equals(structureMap.get("id"))) continue;
-                    Structure structure;
-                    try {
-                        structure = new Structure(count, world.getName(), (Map<String, Object>) structureMap);
-                    } catch (IllegalArgumentException iae) {
-                        iae.printStackTrace();
-                        continue;
-                    }
-                    add(structure);
-                    count += 1;
-                }
-            }
-        } catch (IOException ioe) {
-            throw new IllegalStateException(ioe);
-        }
-        return count;
-    }
-
-    public void unload(World world) {
-        worlds.remove(world.getName());
-    }
-
-    public void add(Structure structure) {
-        SpatialStructureCache cache = worlds.get(structure.getWorld());
-        if (cache != null) cache.insert(structure);
-    }
-
-    public void remove(Structure structure) {
-        SpatialStructureCache cache = worlds.get(structure.getWorld());
-        if (cache != null) cache.remove(structure);
-    }
-
-    public void resize(Structure structure, Cuboid oldCuboid, Cuboid newCuboid) {
-        SpatialStructureCache cache = worlds.get(structure.getWorld());
-        if (cache == null) return;
-        cache.update(structure, oldCuboid, newCuboid);
-    }
-
-    public void clear() {
         worlds.clear();
     }
 
     public Structure at(Block block) {
-        Structure structure = at(block.getWorld().getName(), block.getX(), block.getY(), block.getZ());
-        return structure != null && structure.boundingBox.contains(block)
-            ? structure
+        return at(block.getWorld().getName(), Vec3i.of(block));
+    }
+
+    public Structure at(String worldName, Vec3i vector) {
+        StructureWorld sworld = worlds.get(worldName);
+        return sworld != null
+            ? sworld.at(vector)
             : null;
     }
 
-    public Structure at(final String world, int x, int y, int z) {
-        SpatialStructureCache spatial = worlds.get(world);
-        if (spatial == null) return null;
-        return spatial.findStructureAt(x, y, z);
+    public List<Structure> within(String worldName, Cuboid cuboid) {
+        StructureWorld sworld = worlds.get(worldName);
+        return sworld != null
+            ? sworld.within(cuboid)
+            : List.of();
     }
 
-    public List<Structure> within(final String world, Cuboid cuboid) {
-        SpatialStructureCache spatial = worlds.get(world);
-        if (spatial == null) return List.of();
-        return spatial.findStructuresWithin(cuboid);
+    public void onChunkLoad(String worldName, int chunkX, int chunkZ) {
+        worlds.get(worldName).loadChunk(chunkX, chunkZ);
     }
 
-    public List<Structure> inWorld(final String world) {
-        SpatialStructureCache spatial = worlds.get(world);
-        if (spatial == null) return List.of();
-        return spatial.allStructures;
-    }
-
-    public void debug(CommandSender sender, String worldName) {
-        SpatialStructureCache spatial = worlds.get(worldName);
-        if (spatial == null) {
-            sender.sendMessage("No cache: " + worldName);
-            return;
-        }
-        List<SpatialStructureCache.XYSlot> slots = spatial.getAllSlots();
-        Collections.sort(slots, (a, b) -> Integer.compare(a.structures.size(), b.structures.size()));
-        int len = SpatialStructureCache.CHUNK_SIZE;
-        int structureCount = 0;
-        for (SpatialStructureCache.XYSlot slot : slots) {
-            structureCount += slot.structures.size();
-            sender.sendMessage("Slot " + slot.x + "," + slot.y
-                               + " (" + (slot.x * len) + "," + (slot.y * len) + ")"
-                               + ": " + slot.structures.size() + " structures");
-        }
-        sender.sendMessage("Total " + slots.size() + " slots, " + structureCount + " structures");
+    public void onChunkUnload(String worldName, int chunkX, int chunkZ) {
+        worlds.get(worldName).unloadChunk(chunkX, chunkZ);
     }
 }

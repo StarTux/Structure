@@ -1,10 +1,11 @@
 package com.cavetale.structure;
 
 import com.cavetale.core.command.AbstractCommand;
+import com.cavetale.core.command.CommandArgCompleter;
 import com.cavetale.core.command.CommandWarn;
-import com.cavetale.structure.cache.Cuboid;
 import com.cavetale.structure.cache.Structure;
 import com.cavetale.structure.cache.StructurePart;
+import com.cavetale.structure.struct.Cuboid;
 import org.bukkit.Particle;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
@@ -24,12 +25,10 @@ public final class StructureCommand extends AbstractCommand<StructurePlugin> {
         rootNode.addChild("highlight").denyTabCompletion()
             .description("Highlight current structure")
             .playerCaller(this::highlight);
-        rootNode.addChild("nearby").denyTabCompletion()
+        rootNode.addChild("nearby").arguments("[radius]")
+            .completers(CommandArgCompleter.integer(i -> i > 0))
             .description("Find structures nearby")
             .playerCaller(this::nearby);
-        rootNode.addChild("debug").denyTabCompletion()
-            .description("debug Command")
-            .playerCaller(this::debug);
     }
 
     protected void info(Player player) {
@@ -56,21 +55,22 @@ public final class StructureCommand extends AbstractCommand<StructurePlugin> {
         }
     }
 
-    protected void nearby(Player player) {
+    private boolean nearby(Player player, String[] args) {
+        if (args.length > 1) return false;
         Block block = player.getLocation().getBlock();
-        int r = 64;
+        int r = args.length >= 1
+            ? CommandArgCompleter.requireInt(args[0], i -> i > 0)
+            : 64;
         Cuboid cuboid = new Cuboid(block.getX() - r, block.getWorld().getMinHeight(), block.getZ() - r,
                                    block.getX() + r, block.getWorld().getMaxHeight(), block.getZ() + r);
-        player.sendMessage(text("Finding structures within " + cuboid + ":", YELLOW));
+        player.sendMessage(text("Finding structures within " + r + " block radius:", YELLOW));
         for (Structure structure : plugin.structureCache.within(player.getWorld().getName(), cuboid)) {
             player.sendMessage(text("- Structure " + structure.getKey()
                                     + " (" + structure.getBoundingBox() + ")"
-                                    + " children=" + structure.getChildren().size()
-                                    + " inside=" + structure.getBoundingBox().contains(block), AQUA));
+                                    + " children:" + structure.getChildren().size()
+                                    + " vanilla:" + structure.isVanilla()
+                                    + " inside:" + structure.getBoundingBox().contains(block), AQUA));
         }
-    }
-
-    protected void debug(Player player) {
-        plugin.structureCache.debug(player, player.getWorld().getName());
+        return true;
     }
 }

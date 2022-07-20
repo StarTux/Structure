@@ -1,5 +1,8 @@
 package com.cavetale.structure.cache;
 
+import com.cavetale.core.util.Json;
+import com.cavetale.structure.sqlite.SQLStructure;
+import com.cavetale.structure.struct.Cuboid;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -10,40 +13,33 @@ import org.bukkit.block.Block;
 
 @Data
 public final class Structure implements Keyed {
-    /** The index is unique per world and storage file. */
+    /** The index is unique per world. */
     protected final int id;
     protected final String world;
     protected final NamespacedKey key;
     protected final Cuboid boundingBox;
     protected final List<StructurePart> children = new ArrayList<>();
+    protected int referenceCount; // count referencing StructureRegion instances
+
+    protected Structure(final SQLStructure row, final String world) {
+        this.id = row.getId();
+        this.world = world;
+        this.key = NamespacedKey.fromString(row.getType());
+        this.boundingBox = row.getCuboid();
+        if (key.getNamespace().equals("minecraft")) {
+            parseVanillaChildren(row);
+        }
+    }
 
     @SuppressWarnings("unchecked")
-    protected Structure(final int id, final String world, final Map<String, Object> structureMap) {
-        this.id = id;
-        this.world = world;
-        this.key = NamespacedKey.fromString((String) structureMap.get("id"));
-        if (this.key == null) throw new IllegalArgumentException("Invalid key: " + key);
+    private void parseVanillaChildren(SQLStructure row) {
+        Map<String, Object> structureMap = (Map<String, Object>) Json.deserialize(row.getJson(), Map.class);
         List<Map<String, Object>> childMaps = (List<Map<String, Object>>) structureMap.get("Children");
         if (childMaps == null) throw new IllegalArgumentException("Missing children: " + structureMap);
         for (Map<String, Object> childMap : childMaps) {
             StructurePart part = new StructurePart(childMap);
             children.add(part);
         }
-        int ax = children.get(0).boundingBox.ax;
-        int ay = children.get(0).boundingBox.ay;
-        int az = children.get(0).boundingBox.az;
-        int bx = children.get(0).boundingBox.bx;
-        int by = children.get(0).boundingBox.by;
-        int bz = children.get(0).boundingBox.bz;
-        for (StructurePart child : children) {
-            ax = Math.min(ax, child.boundingBox.ax);
-            ay = Math.min(ay, child.boundingBox.ay);
-            az = Math.min(az, child.boundingBox.az);
-            bx = Math.max(bx, child.boundingBox.bx);
-            by = Math.max(by, child.boundingBox.by);
-            bz = Math.max(bz, child.boundingBox.bz);
-        }
-        this.boundingBox = new Cuboid(ax, ay, az, bx, by, bz);
     }
 
     public StructurePart getChildAt(int x, int y, int z) {

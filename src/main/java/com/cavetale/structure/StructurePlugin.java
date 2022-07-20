@@ -1,10 +1,13 @@
 package com.cavetale.structure;
 
 import com.cavetale.structure.cache.StructureCache;
+import java.util.logging.Logger;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.world.ChunkLoadEvent;
+import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -25,30 +28,54 @@ public final class StructurePlugin extends JavaPlugin implements Listener {
     public void onEnable() {
         structureCommand.enable();
         for (World world : Bukkit.getWorlds()) {
-            int count = structureCache.load(world);
-            getLogger().info(world.getName() + ": " + count + " structures loaded");
+            structureCache.enable(world);
         }
         Bukkit.getPluginManager().registerEvents(this, this);
     }
 
     @Override
     public void onDisable() {
-        structureCache.clear();
+        structureCache.disable();
         coreStructures.unregister();
     }
 
     @EventHandler
     private void onWorldLoad(WorldLoadEvent event) {
-        int count = structureCache.load(event.getWorld());
-        getLogger().info(event.getWorld().getName() + ": " + count + " structures loaded");
+        structureCache.enable(event.getWorld());
     }
 
     @EventHandler
     private void onWorldUnload(WorldUnloadEvent event) {
-        structureCache.unload(event.getWorld());
+        structureCache.disable(event.getWorld());
+    }
+
+    @EventHandler
+    private void onChunkLoad(ChunkLoadEvent event) {
+        structureCache.onChunkLoad(event.getWorld().getName(), event.getChunk().getX(), event.getChunk().getZ());
+    }
+
+    @EventHandler
+    private void onChunkUnload(ChunkUnloadEvent event) {
+        structureCache.onChunkUnload(event.getWorld().getName(), event.getChunk().getX(), event.getChunk().getZ());
+    }
+
+    public static StructurePlugin structurePlugin() {
+        return instance;
     }
 
     public static StructureCache structureCache() {
         return instance.structureCache;
+    }
+
+    public static Logger logger() {
+        return instance.getLogger();
+    }
+
+    public static void log(String msg) {
+        instance.getLogger().info(msg);
+    }
+
+    public static void warn(String msg) {
+        instance.getLogger().warning(msg);
     }
 }

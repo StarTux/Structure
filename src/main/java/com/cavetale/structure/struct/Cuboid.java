@@ -1,4 +1,4 @@
-package com.cavetale.structure.cache;
+package com.cavetale.structure.struct;
 
 import java.util.ArrayList;
 import java.util.List;
