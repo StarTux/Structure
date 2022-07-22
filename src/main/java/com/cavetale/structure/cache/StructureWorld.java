@@ -1,5 +1,7 @@
 package com.cavetale.structure.cache;
 
+import com.cavetale.structure.event.StructureLoadEvent;
+import com.cavetale.structure.event.StructureUnloadEvent;
 import com.cavetale.structure.sqlite.SQLiteDataStore;
 import com.cavetale.structure.struct.Cuboid;
 import com.cavetale.structure.struct.Vec2i;
@@ -94,6 +96,7 @@ public final class StructureWorld {
 
     /**
      * Get region from cached if cached, otherwise load it.
+     * This will not increase the referenceCount.
      */
     protected StructureRegion getRegion(int x, int z) {
         StructureRegion cached = regionCache.get(Vec2i.of(x, z));
@@ -146,6 +149,7 @@ public final class StructureWorld {
             for (Structure structure : region.structures) {
                 if (structure.referenceCount == 0) {
                     structureCache.put(structure.getId(), structure);
+                    new StructureLoadEvent(structure).callEvent();
                 }
                 structure.referenceCount += 1;
             }
@@ -168,6 +172,7 @@ public final class StructureWorld {
             for (Structure structure : region.structures) {
                 structure.referenceCount -= 1;
                 if (structure.referenceCount <= 0) {
+                    new StructureUnloadEvent(structure).callEvent();
                     structureCache.remove(structure.getId());
                 }
             }

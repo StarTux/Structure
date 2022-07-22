@@ -104,4 +104,8 @@ public final class Structure implements Keyed {
         json = Json.serialize(data);
         structureCache().updateStructure(this);
     }
+
+    public boolean isLoaded() {
+        return referenceCount > 0;
+    }
 }
