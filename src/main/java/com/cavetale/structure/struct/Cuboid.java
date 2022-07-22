@@ -3,6 +3,7 @@ package com.cavetale.structure.struct;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import lombok.Value;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -141,7 +142,52 @@ public final class Cuboid {
         return x && y && z;
     }
 
+    /**
+     * Move the entire box.
+     */
+    public Cuboid shift(int dx, int dy, int dz) {
+        return new Cuboid(ax + dx, ay + dy, az + dz,
+                          bx + dx, by + dy, bz + dz);
+    }
+
+    /**
+     * Grow in one direction per axis.
+     */
+    public Cuboid expand(int dx, int dy, int dz) {
+        return new Cuboid(ax + Math.min(0, dx), ay + Math.min(0, dy), az + Math.min(0, dz),
+                          bx + Math.max(0, dx), by + Math.max(0, dy), bz + Math.max(0, dz));
+    }
+
+    /**
+     * Grow along all axes.
+     */
     public Cuboid outset(int dx, int dy, int dz) {
-        return new Cuboid(ax - dx, ay - dy, az - dz, bx + dx, by + dy, bz + dz);
+        return new Cuboid(ax - dx, ay - dy, az - dz,
+                          bx + dx, by + dy, bz + dz);
+    }
+
+    /**
+     * Apply the same operation to all coordinates.
+     */
+    public Cuboid applyCoords(Function<Integer, Integer> fun) {
+        return new Cuboid(fun.apply(ax), fun.apply(ay), fun.apply(az),
+                          fun.apply(bx), fun.apply(by), fun.apply(bz));
+    }
+
+    /**
+     * Apply an operation to the lower coords and another to the upper
+     * coords.
+     */
+    public Cuboid applyCoords(Function<Integer, Integer> lfun, Function<Integer, Integer> ufun) {
+        return new Cuboid(lfun.apply(ax), lfun.apply(ay), lfun.apply(az),
+                          ufun.apply(bx), ufun.apply(by), ufun.apply(bz));
+    }
+
+    /**
+     * Turn all block coordinates into chunk coordinates.
+     */
+    public Cuboid blockToChunk() {
+        return new Cuboid(ax >> 4, ay >> 4, az >> 4,
+                          bx >> 4, by >> 4, bz >> 4);
     }
 }
