@@ -1,11 +1,11 @@
 package com.cavetale.structure.cache;
 
+import com.cavetale.core.struct.Cuboid;
+import com.cavetale.core.struct.Vec2i;
+import com.cavetale.core.struct.Vec3i;
 import com.cavetale.structure.event.StructureLoadEvent;
 import com.cavetale.structure.event.StructureUnloadEvent;
 import com.cavetale.structure.sqlite.SQLiteDataStore;
-import com.cavetale.structure.struct.Cuboid;
-import com.cavetale.structure.struct.Vec2i;
-import com.cavetale.structure.struct.Vec3i;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -106,7 +106,6 @@ public final class StructureWorld {
     }
 
     protected StructureRegion loadRegion(int x, int z) {
-        log("[" + worldName + "] Loading region: " + x + ", " + z);
         StructureRegion result = new StructureRegion();
         if (dataStore != null) {
             for (int id : dataStore.getStructureRefs(x, z)) {

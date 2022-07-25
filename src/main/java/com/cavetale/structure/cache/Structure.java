@@ -1,8 +1,8 @@
 package com.cavetale.structure.cache;
 
+import com.cavetale.core.struct.Cuboid;
+import com.cavetale.core.struct.Vec2i;
 import com.cavetale.core.util.Json;
-import com.cavetale.structure.struct.Cuboid;
-import com.cavetale.structure.struct.Vec2i;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;

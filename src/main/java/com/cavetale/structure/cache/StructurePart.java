@@ -1,6 +1,6 @@
 package com.cavetale.structure.cache;
 
-import com.cavetale.structure.struct.Cuboid;
+import com.cavetale.core.struct.Cuboid;
 import java.util.List;
 import java.util.Map;
 import lombok.Data;
@@ -22,6 +22,6 @@ public final class StructurePart {
     @SuppressWarnings("unchecked")
     protected StructurePart(final Map<String, Object> partMap) {
         this.id = (String) requireNonNull(partMap.get("id"));
-        this.boundingBox = Cuboid.of((List<Number>) requireNonNull(partMap.get("BB")));
+        this.boundingBox = Cuboid.ofList((List<Number>) requireNonNull(partMap.get("BB")));
     }
 }

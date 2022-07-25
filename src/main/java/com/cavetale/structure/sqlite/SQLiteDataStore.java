@@ -1,8 +1,8 @@
 package com.cavetale.structure.sqlite;
 
+import com.cavetale.core.struct.Cuboid;
+import com.cavetale.core.struct.Vec2i;
 import com.cavetale.structure.cache.Structure;
-import com.cavetale.structure.struct.Cuboid;
-import com.cavetale.structure.struct.Vec2i;
 import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;

@@ -1,7 +1,7 @@
 package com.cavetale.structure.cache;
 
-import com.cavetale.structure.struct.Cuboid;
-import com.cavetale.structure.struct.Vec3i;
+import com.cavetale.core.struct.Cuboid;
+import com.cavetale.core.struct.Vec3i;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
