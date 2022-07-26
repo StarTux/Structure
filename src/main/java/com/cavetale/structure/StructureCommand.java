@@ -59,7 +59,7 @@ public final class StructureCommand extends AbstractCommand<StructurePlugin> {
     }
 
     private boolean nearby(Player player, String[] args) {
-        if (args.length > 1) return false;
+        if (args.length > 2) return false;
         Block block = player.getLocation().getBlock();
         int r = args.length >= 1
             ? CommandArgCompleter.requireInt(args[0], i -> i > 0)
