@@ -9,7 +9,9 @@ import com.cavetale.structure.cache.StructurePart;
 import org.bukkit.Particle;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
+import static net.kyori.adventure.text.Component.join;
 import static net.kyori.adventure.text.Component.text;
+import static net.kyori.adventure.text.JoinConfiguration.noSeparators;
 import static net.kyori.adventure.text.format.NamedTextColor.*;
 
 public final class StructureCommand extends AbstractCommand<StructurePlugin> {
@@ -19,9 +21,9 @@ public final class StructureCommand extends AbstractCommand<StructurePlugin> {
 
     @Override
     protected void onEnable() {
-        rootNode.addChild("info").denyTabCompletion()
+        rootNode.addChild("here").denyTabCompletion()
             .description("Show current structure")
-            .playerCaller(this::info);
+            .playerCaller(this::here);
         rootNode.addChild("highlight").denyTabCompletion()
             .description("Highlight current structure")
             .playerCaller(this::highlight);
@@ -29,9 +31,12 @@ public final class StructureCommand extends AbstractCommand<StructurePlugin> {
             .completers(CommandArgCompleter.integer(i -> i > 0))
             .description("Find structures nearby")
             .playerCaller(this::nearby);
+        rootNode.addChild("biome").denyTabCompletion()
+            .description("Get biome")
+            .playerCaller(this::biome);
     }
 
-    protected void info(Player player) {
+    protected void here(Player player) {
         Block block = player.getLocation().getBlock();
         Structure structure = plugin.structureCache.at(block);
         String xyz = block.getX() + " " + block.getY() + " " + block.getZ();
@@ -75,5 +80,15 @@ public final class StructureCommand extends AbstractCommand<StructurePlugin> {
                                     + " inside:" + structure.getBoundingBox().contains(block), AQUA));
         }
         return true;
+    }
+
+    private void biome(Player player) {
+        Block block = player.getLocation().getBlock();
+        player.sendMessage(join(noSeparators(),
+                                text("Biome at ", GRAY),
+                                text(block.getX()), text(",", GRAY),
+                                text(block.getY()), text(",", GRAY),
+                                text(block.getZ()), text(":", GRAY),
+                                text(" " + plugin.structureCache.biomeAt(block))));
     }
 }

@@ -2,6 +2,7 @@ package com.cavetale.structure.sqlite;
 
 import com.cavetale.core.struct.Cuboid;
 import com.cavetale.core.struct.Vec2i;
+import com.cavetale.structure.cache.BiomeSection;
 import com.cavetale.structure.cache.Structure;
 import java.io.File;
 import java.sql.Connection;
@@ -26,6 +27,9 @@ public final class SQLiteDataStore {
     private PreparedStatement stmtFindStructure;
     private PreparedStatement stmtInsertStructure;
     private PreparedStatement stmtUpdateStructure;
+    private PreparedStatement stmtInsertBiomeSection;
+    private PreparedStatement stmtFindBiomeSection;
+    private PreparedStatement stmtGetAllBiomeSections;
     private Statement stmt;
 
     public void enable() {
@@ -60,6 +64,14 @@ public final class SQLiteDataStore {
                               + " `region_z` INTEGER NOT NULL,"
                               + " UNIQUE(`region_x`, `region_z`, `structure_id`)"
                               + ")");
+            statement.execute("CREATE TABLE IF NOT EXISTS `biomes` ("
+                              + " `id` INTEGER PRIMARY KEY,"
+                              + " `chunk_x` INTEGER NOT NULL,"
+                              + " `chunk_y` INTEGER NOT NULL,"
+                              + " `chunk_z` INTEGER NOT NULL,"
+                              + " `json` TEXT NOT NULL,"
+                              + " UNIQUE(`chunk_x`, `chunk_z`, `chunk_y`) ON CONFLICT REPLACE"
+                              + ")");
         } catch (SQLException sqle) {
             throw new IllegalStateException(sqle);
         }
@@ -72,6 +84,9 @@ public final class SQLiteDataStore {
                                                               + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                                                               Statement.RETURN_GENERATED_KEYS);
             stmtUpdateStructure = connection.prepareStatement("UPDATE `structures` SET `json` = ? WHERE `id` = ?");
+            stmtInsertBiomeSection = connection.prepareStatement("INSERT INTO `biomes` (`chunk_x`, `chunk_y`, `chunk_z`, `json`) VALUES (?, ?, ?, ?)");
+            stmtFindBiomeSection = connection.prepareStatement("SELECT `json` FROM `biomes` WHERE `chunk_x` = ? AND `chunk_z` = ? AND `chunk_y` = ?");
+            stmtGetAllBiomeSections = connection.prepareStatement("SELECT * FROM `biomes`");
         } catch (SQLException sqle) {
             throw new IllegalStateException(sqle);
         }
@@ -83,6 +98,9 @@ public final class SQLiteDataStore {
             stmtFindStructure.close();
             stmtInsertStructure.close();
             stmtUpdateStructure.close();
+            stmtInsertBiomeSection.close();
+            stmtFindBiomeSection.close();
+            stmtGetAllBiomeSections.close();
             stmt.close();
             connection.close();
         } catch (SQLException sqle) {
@@ -213,6 +231,48 @@ public final class SQLiteDataStore {
             stmtUpdateStructure.setString(1, structure.getJson());
             stmtUpdateStructure.setInt(2, structure.getId());
             stmtUpdateStructure.executeUpdate();
+        } catch (SQLException sqle) {
+            throw new IllegalStateException(sqle);
+        }
+    }
+
+    public void setBiomeSection(int chunkX, int chunkY, int chunkZ, String json) {
+        try {
+            stmtInsertBiomeSection.setInt(1, chunkX);
+            stmtInsertBiomeSection.setInt(2, chunkY);
+            stmtInsertBiomeSection.setInt(3, chunkZ);
+            stmtInsertBiomeSection.setString(4, json);
+            stmtInsertBiomeSection.executeUpdate();
+        } catch (SQLException sqle) {
+            throw new IllegalStateException(sqle);
+        }
+    }
+
+    public BiomeSection getBiomeSection(int chunkX, int chunkY, int chunkZ) {
+        try {
+            stmtFindBiomeSection.setInt(1, chunkX);
+            stmtFindBiomeSection.setInt(2, chunkZ);
+            stmtFindBiomeSection.setInt(3, chunkY);
+            ResultSet resultSet = stmtFindBiomeSection.executeQuery();
+            if (!resultSet.next()) return null;
+            final String json = resultSet.getString("json");
+            return new BiomeSection(chunkX, chunkY, chunkZ, json);
+        } catch (SQLException sqle) {
+            throw new IllegalStateException(sqle);
+        }
+    }
+
+    public List<BiomeSection> getAllBiomeSections() {
+        try {
+            ResultSet resultSet = stmtGetAllBiomeSections.executeQuery();
+            List<BiomeSection> result = new ArrayList<>();
+            while (resultSet.next()) {
+                result.add(new BiomeSection(resultSet.getInt("chunk_x"),
+                                            resultSet.getInt("chunk_y"),
+                                            resultSet.getInt("chunk_z"),
+                                            resultSet.getString("json")));
+            }
+            return result;
         } catch (SQLException sqle) {
             throw new IllegalStateException(sqle);
         }

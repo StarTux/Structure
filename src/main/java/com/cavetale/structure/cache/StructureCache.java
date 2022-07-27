@@ -86,4 +86,11 @@ public final class StructureCache {
         if (structureWorld == null) throw new IllegalStateException("World not found: " + structure);
         structureWorld.updateStructure(structure);
     }
+
+    public NamespacedKey biomeAt(Block block) {
+        StructureWorld structureWorld = worlds.get(block.getWorld().getName());
+        return structureWorld != null
+            ? structureWorld.biomeAt(Vec3i.of(block))
+            : null;
+    }
 }

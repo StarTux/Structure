@@ -14,6 +14,7 @@ import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
+import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import static com.cavetale.structure.StructurePlugin.log;
 import static com.cavetale.structure.StructurePlugin.warn;
@@ -194,5 +195,14 @@ public final class StructureWorld {
 
     protected void updateStructure(Structure structure) {
         getOrCreateDataStore().updateStructureJson(structure);
+    }
+
+    protected NamespacedKey biomeAt(Vec3i vec) {
+        if (dataStore == null) return null;
+        BiomeSection biomeSection = dataStore.getBiomeSection(vec.x >> 4, vec.y >> 4, vec.z >> 4);
+        if (biomeSection == null) return null;
+        String name = biomeSection.getBiome(vec.x & 15, vec.y & 15, vec.z & 15);
+        if (name == null) return null;
+        return NamespacedKey.fromString(name);
     }
 }
