@@ -93,4 +93,11 @@ public final class StructureCache {
             ? structureWorld.biomeAt(Vec3i.of(block))
             : null;
     }
+
+    public List<BiomeSection> biomeSections(World world) {
+        StructureWorld structureWorld = worlds.get(world.getName());
+        return structureWorld != null
+            ? structureWorld.biomeSections()
+            : null;
+    }
 }

@@ -201,8 +201,14 @@ public final class StructureWorld {
         if (dataStore == null) return null;
         BiomeSection biomeSection = dataStore.getBiomeSection(vec.x >> 4, vec.y >> 4, vec.z >> 4);
         if (biomeSection == null) return null;
-        String name = biomeSection.getBiome(vec.x & 15, vec.y & 15, vec.z & 15);
+        String name = biomeSection.getBiomeName(vec.x & 15, vec.y & 15, vec.z & 15);
         if (name == null) return null;
         return NamespacedKey.fromString(name);
+    }
+
+    protected List<BiomeSection> biomeSections() {
+        return dataStore != null
+            ? dataStore.getAllBiomeSections()
+            : null;
     }
 }
