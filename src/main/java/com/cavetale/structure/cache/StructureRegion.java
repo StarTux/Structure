@@ -6,4 +6,5 @@ import java.util.List;
 public final class StructureRegion {
     protected final List<Structure> structures = new ArrayList<>();
     protected int referenceCount;
+    protected long lastUse;
 }

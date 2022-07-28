@@ -64,11 +64,11 @@ public final class StructureCache {
     }
 
     public void onChunkLoad(String worldName, int chunkX, int chunkZ) {
-        worlds.get(worldName).loadChunk(chunkX, chunkZ);
+        worlds.get(worldName).onChunkLoad(chunkX, chunkZ);
     }
 
     public void onChunkUnload(String worldName, int chunkX, int chunkZ) {
-        worlds.get(worldName).unloadChunk(chunkX, chunkZ);
+        worlds.get(worldName).onChunkUnload(chunkX, chunkZ);
     }
 
     public void addStructure(Structure structure) {

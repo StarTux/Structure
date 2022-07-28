@@ -16,7 +16,9 @@ import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
+import org.bukkit.scheduler.BukkitTask;
 import static com.cavetale.structure.StructurePlugin.log;
+import static com.cavetale.structure.StructurePlugin.structurePlugin;
 import static com.cavetale.structure.StructurePlugin.warn;
 import static java.util.Objects.requireNonNull;
 
@@ -26,10 +28,11 @@ public final class StructureWorld {
     private final Map<Integer, Structure> structureCache = new HashMap<>();
     private final Map<Vec2i, StructureRegion> regionCache = new HashMap<>();
     private SQLiteDataStore dataStore;
+    private BukkitTask pruneTask;
 
     protected void enable(World world) {
         for (Chunk chunk : world.getLoadedChunks()) {
-            loadChunk(chunk.getX(), chunk.getZ());
+            onChunkLoad(chunk.getX(), chunk.getZ());
         }
         File worldFolder = world.getWorldFolder();
         File sqliteFile = new File(worldFolder, "structures.db");
@@ -39,6 +42,20 @@ public final class StructureWorld {
             log("[" + worldName + "] Data store enabled");
         } else {
             warn("[" + worldName + "] Data store not found");
+        }
+        pruneTask = Bukkit.getScheduler().runTaskTimer(structurePlugin(), this::prune, 200L, 200L);
+    }
+
+    protected void disable() {
+        structureCache.clear();
+        regionCache.clear();
+        if (dataStore != null) {
+            dataStore.disable();
+            dataStore = null;
+        }
+        if (pruneTask != null) {
+            pruneTask.cancel();
+            pruneTask = null;
         }
     }
 
@@ -55,15 +72,6 @@ public final class StructureWorld {
             log("[" + worldName + "] Data store enabled");
         }
         return dataStore;
-    }
-
-    protected void disable() {
-        structureCache.clear();
-        regionCache.clear();
-        if (dataStore != null) {
-            dataStore.disable();
-            dataStore = null;
-        }
     }
 
     public Structure at(Vec3i vec) {
@@ -97,16 +105,29 @@ public final class StructureWorld {
 
     /**
      * Get region from cached if cached, otherwise load it.
-     * This will not increase the referenceCount.
+     * This will not increase the referenceCount but will put the
+     * region in the cache and update its lastUse timestamp.
      */
     protected StructureRegion getRegion(int x, int z) {
-        StructureRegion cached = regionCache.get(Vec2i.of(x, z));
-        return cached != null
-            ? cached
-            : loadRegion(x, z);
+        StructureRegion region = regionCache.get(Vec2i.of(x, z));
+        if (region == null) {
+            region = loadRegion(x, z);
+            Vec2i vec = Vec2i.of(x, z);
+            regionCache.put(vec, region);
+            log("[" + worldName + "] Region cached: " + vec);
+        }
+        region.lastUse = System.currentTimeMillis();
+        for (Structure structure : region.structures) {
+            if (structure.referenceCount == 0) {
+                structureCache.put(structure.getId(), structure);
+                new StructureLoadEvent(structure).callEvent();
+            }
+            structure.referenceCount += 1;
+        }
+        return region;
     }
 
-    protected StructureRegion loadRegion(int x, int z) {
+    private StructureRegion loadRegion(int x, int z) {
         StructureRegion result = new StructureRegion();
         if (dataStore != null) {
             for (int id : dataStore.getStructureRefs(x, z)) {
@@ -126,7 +147,7 @@ public final class StructureWorld {
             : loadStructure(id);
     }
 
-    protected Structure loadStructure(int id) {
+    private Structure loadStructure(int id) {
         return dataStore != null
             ? dataStore.getStructure(id)
             : null;
@@ -138,26 +159,14 @@ public final class StructureWorld {
      * Do the same for structures contained in the region, provided
      * the region is newly cached.
      */
-    protected void loadChunk(int chunkX, int chunkZ) {
+    protected void onChunkLoad(int chunkX, int chunkZ) {
         final int regionX = chunkX >> 5;
         final int regionZ = chunkZ >> 5;
         StructureRegion region = getRegion(regionX, regionZ);
-        if (region.referenceCount == 0) {
-            Vec2i vec = Vec2i.of(regionX, regionZ);
-            log("[" + worldName + "] New region cached: " + vec);
-            regionCache.put(vec, region);
-            for (Structure structure : region.structures) {
-                if (structure.referenceCount == 0) {
-                    structureCache.put(structure.getId(), structure);
-                    new StructureLoadEvent(structure).callEvent();
-                }
-                structure.referenceCount += 1;
-            }
-        }
         region.referenceCount += 1;
     }
 
-    protected void unloadChunk(int chunkX, int chunkZ) {
+    protected void onChunkUnload(int chunkX, int chunkZ) {
         final int regionX = chunkX >> 5;
         final int regionZ = chunkZ >> 5;
         Vec2i vec = Vec2i.of(regionX, regionZ);
@@ -166,16 +175,34 @@ public final class StructureWorld {
             throw new IllegalStateException("Unloaded region not cached: " + vec);
         }
         region.referenceCount -= 1;
-        if (region.referenceCount <= 0) {
-            log("[" + worldName + "] Region evicted: " + vec);
-            regionCache.remove(vec);
-            for (Structure structure : region.structures) {
-                structure.referenceCount -= 1;
-                if (structure.referenceCount <= 0) {
-                    new StructureUnloadEvent(structure).callEvent();
-                    structureCache.remove(structure.getId());
-                }
+        tryToEvict(vec, region);
+    }
+
+    /**
+     * Unload one chunks if it does not have references and has not
+     * been in use (lastUse) for at least 10 seconds.
+     */
+    private void tryToEvict(Vec2i vec, StructureRegion region) {
+        if (region.referenceCount > 0) return;
+        if (region.lastUse > System.currentTimeMillis() - 10_000L) return;
+        regionCache.remove(vec);
+        for (Structure structure : region.structures) {
+            structure.referenceCount -= 1;
+            if (structure.referenceCount <= 0) {
+                new StructureUnloadEvent(structure).callEvent();
+                structureCache.remove(structure.getId());
             }
+        }
+        log("[" + worldName + "] Region evicted: " + vec);
+    }
+
+    /**
+     * Try to unload all regions via StructureWorld#tryToEvict.
+     */
+    private void prune() {
+        for (Vec2i vec : List.copyOf(regionCache.keySet())) {
+            StructureRegion region = regionCache.get(vec);
+            tryToEvict(vec, region);
         }
     }
 
