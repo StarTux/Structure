@@ -28,8 +28,8 @@ public final class Structure implements Keyed {
      * the discretion of the client plugin.
      */
     protected final List<StructurePart> children = new ArrayList<>();
-    protected int referenceCount; // count referencing StructureRegion instances
-    private Object data;
+    protected transient int referenceCount; // count referencing StructureRegion instances
+    private transient Object data;
 
     public Structure(final String world, final NamespacedKey key, final Vec2i chunk, final Cuboid boundingBox, final String json) {
         this.world = world;
