@@ -103,6 +103,10 @@ public final class StructureWorld {
         return list;
     }
 
+    public List<Structure> allLoaded() {
+        return List.copyOf(structureCache.values());
+    }
+
     /**
      * Get region from cached if cached, otherwise load it.
      * This will not increase the referenceCount but will put the

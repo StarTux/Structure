@@ -63,6 +63,13 @@ public final class StructureCache {
         return result;
     }
 
+    public List<Structure> allLoaded(String worldName) {
+        StructureWorld sworld = worlds.get(worldName);
+        return sworld != null
+            ? sworld.allLoaded()
+            : List.of();
+    }
+
     public void onChunkLoad(String worldName, int chunkX, int chunkZ) {
         worlds.get(worldName).onChunkLoad(chunkX, chunkZ);
     }
