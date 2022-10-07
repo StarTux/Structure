@@ -2,7 +2,6 @@ package com.cavetale.structure.sqlite;
 
 import com.cavetale.core.struct.Cuboid;
 import com.cavetale.core.struct.Vec2i;
-import com.cavetale.structure.cache.BiomeSection;
 import com.cavetale.structure.cache.Structure;
 import java.io.File;
 import java.sql.Connection;
@@ -12,11 +11,16 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.NamespacedKey;
+import org.bukkit.Registry;
+import org.bukkit.block.Biome;
 import static com.cavetale.structure.StructurePlugin.logger;
+import static com.cavetale.structure.StructurePlugin.warn;
 
 @RequiredArgsConstructor
 public final class SQLiteDataStore {
@@ -27,9 +31,9 @@ public final class SQLiteDataStore {
     private PreparedStatement stmtFindStructure;
     private PreparedStatement stmtInsertStructure;
     private PreparedStatement stmtUpdateStructure;
-    private PreparedStatement stmtInsertBiomeSection;
-    private PreparedStatement stmtFindBiomeSection;
-    private PreparedStatement stmtGetAllBiomeSections;
+    private PreparedStatement stmtInsertBiome;
+    private PreparedStatement stmtFindBiome;
+    private PreparedStatement stmtGetAllBiomes;
     private Statement stmt;
 
     public void enable() {
@@ -67,10 +71,9 @@ public final class SQLiteDataStore {
             statement.execute("CREATE TABLE IF NOT EXISTS `biomes` ("
                               + " `id` INTEGER PRIMARY KEY,"
                               + " `chunk_x` INTEGER NOT NULL,"
-                              + " `chunk_y` INTEGER NOT NULL,"
                               + " `chunk_z` INTEGER NOT NULL,"
-                              + " `json` TEXT NOT NULL,"
-                              + " UNIQUE(`chunk_x`, `chunk_z`, `chunk_y`) ON CONFLICT REPLACE"
+                              + " `biome` TEXT NOT NULL,"
+                              + " UNIQUE(`chunk_x`, `chunk_z`) ON CONFLICT REPLACE"
                               + ")");
         } catch (SQLException sqle) {
             throw new IllegalStateException(sqle);
@@ -84,9 +87,9 @@ public final class SQLiteDataStore {
                                                               + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                                                               Statement.RETURN_GENERATED_KEYS);
             stmtUpdateStructure = connection.prepareStatement("UPDATE `structures` SET `json` = ? WHERE `id` = ?");
-            stmtInsertBiomeSection = connection.prepareStatement("INSERT INTO `biomes` (`chunk_x`, `chunk_y`, `chunk_z`, `json`) VALUES (?, ?, ?, ?)");
-            stmtFindBiomeSection = connection.prepareStatement("SELECT `json` FROM `biomes` WHERE `chunk_x` = ? AND `chunk_z` = ? AND `chunk_y` = ?");
-            stmtGetAllBiomeSections = connection.prepareStatement("SELECT * FROM `biomes`");
+            stmtInsertBiome = connection.prepareStatement("INSERT INTO `biomes` (`chunk_x`, `chunk_z`, `biome`) VALUES (?, ?, ?)");
+            stmtFindBiome = connection.prepareStatement("SELECT `biome` FROM `biomes` WHERE `chunk_x` = ? AND `chunk_z` = ?");
+            stmtGetAllBiomes = connection.prepareStatement("SELECT * FROM `biomes`");
         } catch (SQLException sqle) {
             throw new IllegalStateException(sqle);
         }
@@ -98,9 +101,9 @@ public final class SQLiteDataStore {
             stmtFindStructure.close();
             stmtInsertStructure.close();
             stmtUpdateStructure.close();
-            stmtInsertBiomeSection.close();
-            stmtFindBiomeSection.close();
-            stmtGetAllBiomeSections.close();
+            stmtInsertBiome.close();
+            stmtFindBiome.close();
+            stmtGetAllBiomes.close();
             stmt.close();
             connection.close();
         } catch (SQLException sqle) {
@@ -236,41 +239,52 @@ public final class SQLiteDataStore {
         }
     }
 
-    public void setBiomeSection(int chunkX, int chunkY, int chunkZ, String json) {
+    public void setBiome(int chunkX, int chunkZ, String biome) {
         try {
-            stmtInsertBiomeSection.setInt(1, chunkX);
-            stmtInsertBiomeSection.setInt(2, chunkY);
-            stmtInsertBiomeSection.setInt(3, chunkZ);
-            stmtInsertBiomeSection.setString(4, json);
-            stmtInsertBiomeSection.executeUpdate();
+            stmtInsertBiome.setInt(1, chunkX);
+            stmtInsertBiome.setInt(2, chunkZ);
+            stmtInsertBiome.setString(3, biome);
+            stmtInsertBiome.executeUpdate();
         } catch (SQLException sqle) {
             throw new IllegalStateException(sqle);
         }
     }
 
-    public BiomeSection getBiomeSection(int chunkX, int chunkY, int chunkZ) {
+    public Biome getChunkBiome(int chunkX, int chunkZ) {
         try {
-            stmtFindBiomeSection.setInt(1, chunkX);
-            stmtFindBiomeSection.setInt(2, chunkZ);
-            stmtFindBiomeSection.setInt(3, chunkY);
-            ResultSet resultSet = stmtFindBiomeSection.executeQuery();
-            if (!resultSet.next()) return null;
-            final String json = resultSet.getString("json");
-            return new BiomeSection(chunkX, chunkY, chunkZ, json);
+            stmtFindBiome.setInt(1, chunkX);
+            stmtFindBiome.setInt(2, chunkZ);
+            try (ResultSet resultSet = stmtFindBiome.executeQuery()) {
+                if (!resultSet.next()) return null;
+                String name = resultSet.getString("biome");
+                if (name == null) return null;
+                NamespacedKey namespacedKey = NamespacedKey.fromString(name);
+                Biome biome = Registry.BIOME.get(namespacedKey);
+                if (biome == null) {
+                    warn("Invalid biome: " + name);
+                    return null;
+                }
+                return biome;
+            }
         } catch (SQLException sqle) {
             throw new IllegalStateException(sqle);
         }
     }
 
-    public List<BiomeSection> getAllBiomeSections() {
-        try {
-            ResultSet resultSet = stmtGetAllBiomeSections.executeQuery();
-            List<BiomeSection> result = new ArrayList<>();
+    public Map<Vec2i, Biome> getAllBiomes() {
+        try (ResultSet resultSet = stmtGetAllBiomes.executeQuery()) {
+            Map<Vec2i, Biome> result = new HashMap<>();
             while (resultSet.next()) {
-                result.add(new BiomeSection(resultSet.getInt("chunk_x"),
-                                            resultSet.getInt("chunk_y"),
-                                            resultSet.getInt("chunk_z"),
-                                            resultSet.getString("json")));
+                Vec2i vec = new Vec2i(resultSet.getInt("chunk_x"),
+                                      resultSet.getInt("chunk_y"));
+                String name = resultSet.getString("biome");
+                NamespacedKey namespacedKey = NamespacedKey.fromString(name);
+                Biome biome = Registry.BIOME.get(namespacedKey);
+                if (biome == null) {
+                    warn("Invalid biome: " + name);
+                    continue;
+                }
+                result.put(vec, biome);
             }
             return result;
         } catch (SQLException sqle) {
