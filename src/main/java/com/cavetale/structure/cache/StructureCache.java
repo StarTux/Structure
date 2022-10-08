@@ -1,6 +1,7 @@
 package com.cavetale.structure.cache;
 
 import com.cavetale.core.struct.Cuboid;
+import com.cavetale.core.struct.Vec2i;
 import com.cavetale.core.struct.Vec3i;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -100,5 +101,16 @@ public final class StructureCache {
         return structureWorld != null
             ? structureWorld.biomeAt(Vec3i.of(block))
             : null;
+    }
+
+    public Map<Vec2i, Biome> allBiomes(World world) {
+        return allBiomes(world.getName());
+    }
+
+    public Map<Vec2i, Biome> allBiomes(String worldName) {
+        StructureWorld structureWorld = worlds.get(worldName);
+        return structureWorld != null
+            ? structureWorld.allBiomes()
+            : Map.of();
     }
 }
