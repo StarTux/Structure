@@ -276,7 +276,7 @@ public final class SQLiteDataStore {
             Map<Vec2i, Biome> result = new HashMap<>();
             while (resultSet.next()) {
                 Vec2i vec = new Vec2i(resultSet.getInt("chunk_x"),
-                                      resultSet.getInt("chunk_y"));
+                                      resultSet.getInt("chunk_z"));
                 String name = resultSet.getString("biome");
                 NamespacedKey namespacedKey = NamespacedKey.fromString(name);
                 Biome biome = Registry.BIOME.get(namespacedKey);
