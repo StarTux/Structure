@@ -118,7 +118,6 @@ public final class StructureWorld {
             region = loadRegion(x, z);
             Vec2i vec = Vec2i.of(x, z);
             regionCache.put(vec, region);
-            log("[" + worldName + "] Region cached: " + vec);
         }
         region.lastUse = System.currentTimeMillis();
         for (Structure structure : region.structures) {
@@ -197,7 +196,6 @@ public final class StructureWorld {
                 structureCache.remove(structure.getId());
             }
         }
-        log("[" + worldName + "] Region evicted: " + vec);
     }
 
     /**
