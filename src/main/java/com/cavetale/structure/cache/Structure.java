@@ -108,4 +108,8 @@ public final class Structure implements Keyed {
     public boolean isLoaded() {
         return referenceCount > 0;
     }
+
+    public com.cavetale.core.structure.Structure toCoreStructure() {
+        return new com.cavetale.core.structure.Structure(key, boundingBox);
+    }
 }

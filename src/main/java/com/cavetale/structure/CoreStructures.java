@@ -1,10 +1,14 @@
 package com.cavetale.structure;
 
+import com.cavetale.core.struct.Cuboid;
 import com.cavetale.core.structure.Structures;
 import com.cavetale.structure.cache.Structure;
 import com.cavetale.structure.cache.StructurePart;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.NamespacedKey;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 
 @RequiredArgsConstructor
@@ -34,5 +38,22 @@ public final class CoreStructures implements Structures {
     public boolean structurePartAt(Block block) {
         Structure structure = plugin.structureCache.at(block);
         return structure != null && structure.getChildAt(block) != null;
+    }
+
+    @Override
+    public com.cavetale.core.structure.Structure getStructureAt(Block block) {
+        Structure structure = plugin.structureCache.at(block);
+        return structure != null
+            ? structure.toCoreStructure()
+            : null;
+    }
+
+    @Override
+    public List<com.cavetale.core.structure.Structure> getStructuresWithin(World world, Cuboid cuboid) {
+        List<com.cavetale.core.structure.Structure> result = new ArrayList<>();
+        for (Structure it : plugin.structureCache.within(world.getName(), cuboid)) {
+            result.add(it.toCoreStructure());
+        }
+        return result;
     }
 }
