@@ -10,7 +10,7 @@ author: StarTux
 website: https://github.com/StarTux/Structure
 
 depend: [Core]
-softdepend: []
+softdepend: [Worlds]
 
 commands:
 
