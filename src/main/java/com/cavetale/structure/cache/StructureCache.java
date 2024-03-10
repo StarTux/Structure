@@ -18,14 +18,23 @@ import org.bukkit.block.Block;
 public final class StructureCache {
     private final Map<String, StructureWorld> worlds = new HashMap<>();
 
-    public void enable(World world) {
+    public StructureWorld enable(World world) {
+        final StructureWorld old = worlds.get(world.getName());
+        if (old != null) return old;
         StructureWorld structureWorld = new StructureWorld(world.getName());
         structureWorld.enable(world);
         worlds.put(world.getName(), structureWorld);
+        return structureWorld;
     }
 
     public void disable(World world) {
         worlds.remove(world.getName()).disable();
+    }
+
+    public StructureWorld getWorld(World world) {
+        StructureWorld result = worlds.get(world.getName());
+        if (result == null) enable(world);
+        return enable(world);
     }
 
     public void disable() {
@@ -72,12 +81,14 @@ public final class StructureCache {
             : List.of();
     }
 
-    public void onChunkLoad(String worldName, int chunkX, int chunkZ) {
-        worlds.get(worldName).onChunkLoad(chunkX, chunkZ);
+    public void onChunkLoad(World world, int chunkX, int chunkZ) {
+        getWorld(world).onChunkLoad(chunkX, chunkZ);
     }
 
-    public void onChunkUnload(String worldName, int chunkX, int chunkZ) {
-        worlds.get(worldName).onChunkUnload(chunkX, chunkZ);
+    public void onChunkUnload(World world, int chunkX, int chunkZ) {
+        final var structureWorld = worlds.get(world.getName());
+        if (structureWorld == null) return;
+        structureWorld.onChunkUnload(chunkX, chunkZ);
     }
 
     public void addStructure(Structure structure) {

@@ -51,12 +51,12 @@ public final class StructurePlugin extends JavaPlugin implements Listener {
 
     @EventHandler
     private void onChunkLoad(ChunkLoadEvent event) {
-        structureCache.onChunkLoad(event.getWorld().getName(), event.getChunk().getX(), event.getChunk().getZ());
+        structureCache.onChunkLoad(event.getWorld(), event.getChunk().getX(), event.getChunk().getZ());
     }
 
     @EventHandler
     private void onChunkUnload(ChunkUnloadEvent event) {
-        structureCache.onChunkUnload(event.getWorld().getName(), event.getChunk().getX(), event.getChunk().getZ());
+        structureCache.onChunkUnload(event.getWorld(), event.getChunk().getX(), event.getChunk().getZ());
     }
 
     public static StructurePlugin structurePlugin() {
