@@ -56,7 +56,7 @@ public final class StructureCommand extends AbstractCommand<StructurePlugin> {
         Structure structure = plugin.structureCache.at(block);
         String xyz = block.getX() + " " + block.getY() + " " + block.getZ();
         if (structure == null) throw new CommandWarn("No structure here: " + block.getWorld().getName() + " " + xyz);
-        structure.getBoundingBox().highlight(player.getWorld(), 0.0, loc -> player.spawnParticle(Particle.VILLAGER_HAPPY, loc, 1, 0.0, 0.0, 0.0, 0.0));
+        structure.getBoundingBox().highlight(player.getWorld(), 0.0, loc -> player.spawnParticle(Particle.HAPPY_VILLAGER, loc, 1, 0.0, 0.0, 0.0, 0.0));
         player.sendMessage(text("Highlighting " + structure.getChildren().size() + " parts"));
         for (StructurePart part : structure.getChildren()) {
             part.getBoundingBox().highlight(player.getWorld(), 0.0, loc -> player.spawnParticle(Particle.END_ROD, loc, 1, 0.0, 0.0, 0.0, 0.0));
