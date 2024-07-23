@@ -17,13 +17,13 @@ public final class CoreStructures implements Structures {
 
     @Override
     public NamespacedKey structureKeyAt(Block block) {
-        Structure structure = plugin.structureCache.at(block);
+        Structure structure = plugin.getStructureCache().at(block);
         return structure != null ? structure.getKey() : null;
     }
 
     @Override
     public String structurePartNameAt(Block block) {
-        Structure structure = plugin.structureCache.at(block);
+        Structure structure = plugin.getStructureCache().at(block);
         if (structure == null) return null;
         StructurePart part = structure.getChildAt(block);
         return part != null ? part.getId() : null;
@@ -31,28 +31,26 @@ public final class CoreStructures implements Structures {
 
     @Override
     public boolean structureAt(Block block) {
-        return plugin.structureCache.at(block) != null;
+        return plugin.getStructureCache().at(block) != null;
     }
 
     @Override
     public boolean structurePartAt(Block block) {
-        Structure structure = plugin.structureCache.at(block);
+        Structure structure = plugin.getStructureCache().at(block);
         return structure != null && structure.getChildAt(block) != null;
     }
 
     @Override
     public com.cavetale.core.structure.Structure getStructureAt(Block block) {
-        Structure structure = plugin.structureCache.at(block);
-        return structure != null
-            ? structure.toCoreStructure()
-            : null;
+        Structure structure = plugin.getStructureCache().at(block);
+        return structure;
     }
 
     @Override
     public List<com.cavetale.core.structure.Structure> getStructuresWithin(World world, Cuboid cuboid) {
         List<com.cavetale.core.structure.Structure> result = new ArrayList<>();
-        for (Structure it : plugin.structureCache.within(world.getName(), cuboid)) {
-            result.add(it.toCoreStructure());
+        for (Structure it : plugin.getStructureCache().within(world.getName(), cuboid)) {
+            result.add(it);
         }
         return result;
     }

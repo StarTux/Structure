@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.Getter;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
@@ -15,6 +16,7 @@ import org.bukkit.block.Block;
 /**
  * World container.
  */
+@Getter
 public final class StructureCache {
     private final Map<String, StructureWorld> worlds = new HashMap<>();
 
@@ -103,8 +105,22 @@ public final class StructureCache {
      */
     public void updateStructure(Structure structure) {
         StructureWorld structureWorld = worlds.get(structure.getWorld());
-        if (structureWorld == null) throw new IllegalStateException("World not found: " + structure);
+        if (structureWorld == null) {
+            throw new IllegalStateException("World not found: " + structure);
+        }
         structureWorld.updateStructure(structure);
+    }
+
+    /**
+     * Save the new discovered value to database.
+     * Usually called by Structure#setDiscovered().
+     */
+    public void updateDiscovered(Structure structure) {
+        StructureWorld structureWorld = worlds.get(structure.getWorld());
+        if (structureWorld == null) {
+            throw new IllegalStateException("World not found: " + structure);
+        }
+        structureWorld.updateDiscovered(structure);
     }
 
     public Biome biomeAt(Block block) {

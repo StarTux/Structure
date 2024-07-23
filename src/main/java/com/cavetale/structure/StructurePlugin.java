@@ -2,6 +2,7 @@ package com.cavetale.structure;
 
 import com.cavetale.structure.cache.StructureCache;
 import java.util.logging.Logger;
+import lombok.Getter;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.event.EventHandler;
@@ -12,9 +13,10 @@ import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
+@Getter
 public final class StructurePlugin extends JavaPlugin implements Listener {
     private static StructurePlugin instance;
-    protected final StructureCache structureCache = new StructureCache();
+    private final StructureCache structureCache = new StructureCache();
     private final StructureCommand structureCommand = new StructureCommand(this);
     private final CoreStructures coreStructures = new CoreStructures(this);
 

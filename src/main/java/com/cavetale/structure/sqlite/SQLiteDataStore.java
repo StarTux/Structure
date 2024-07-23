@@ -8,10 +8,12 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -19,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
 import org.bukkit.block.Biome;
+import static com.cavetale.structure.StructurePlugin.log;
 import static com.cavetale.structure.StructurePlugin.logger;
 import static com.cavetale.structure.StructurePlugin.warn;
 
@@ -31,6 +34,7 @@ public final class SQLiteDataStore {
     private PreparedStatement stmtFindStructure;
     private PreparedStatement stmtInsertStructure;
     private PreparedStatement stmtUpdateStructure;
+    private PreparedStatement stmtUpdateDiscovered;
     private PreparedStatement stmtInsertBiome;
     private PreparedStatement stmtFindBiome;
     private PreparedStatement stmtGetAllBiomes;
@@ -59,7 +63,8 @@ public final class SQLiteDataStore {
                               + " `bx` INTEGER NOT NULL,"
                               + " `by` INTEGER NOT NULL,"
                               + " `bz` INTEGER NOT NULL,"
-                              + " `json` TEXT NOT NULL"
+                              + " `json` TEXT NOT NULL,"
+                              + " `discovered` INTEGER NOT NULL"
                               + ")");
             statement.execute("CREATE TABLE IF NOT EXISTS `struct_refs` ("
                               + " `id` INTEGER PRIMARY KEY,"
@@ -87,12 +92,14 @@ public final class SQLiteDataStore {
                                                               + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                                                               Statement.RETURN_GENERATED_KEYS);
             stmtUpdateStructure = connection.prepareStatement("UPDATE `structures` SET `json` = ? WHERE `id` = ?");
+            stmtUpdateDiscovered = connection.prepareStatement("UPDATE `structures` SET `discovered` = ? WHERE `id` = ?");
             stmtInsertBiome = connection.prepareStatement("INSERT INTO `biomes` (`chunk_x`, `chunk_z`, `biome`) VALUES (?, ?, ?)");
             stmtFindBiome = connection.prepareStatement("SELECT `biome` FROM `biomes` WHERE `chunk_x` = ? AND `chunk_z` = ?");
             stmtGetAllBiomes = connection.prepareStatement("SELECT * FROM `biomes`");
         } catch (SQLException sqle) {
             throw new IllegalStateException(sqle);
         }
+        updateStructuresTable();
     }
 
     public void disable() {
@@ -101,13 +108,14 @@ public final class SQLiteDataStore {
             stmtFindStructure.close();
             stmtInsertStructure.close();
             stmtUpdateStructure.close();
+            stmtUpdateDiscovered.close();
             stmtInsertBiome.close();
             stmtFindBiome.close();
             stmtGetAllBiomes.close();
             stmt.close();
             connection.close();
         } catch (SQLException sqle) {
-            logger().log(Level.SEVERE, "", sqle);
+            logger().log(Level.SEVERE, "[" + worldName + "] Disabling", sqle);
         }
     }
 
@@ -146,7 +154,8 @@ public final class SQLiteDataStore {
                                                                    resultSet.getInt("bx"),
                                                                    resultSet.getInt("by"),
                                                                    resultSet.getInt("bz")),
-                                                        resultSet.getString("json"));
+                                                        resultSet.getString("json"),
+                                                        resultSet.getInt("discovered") != 0);
                     structure.setId(resultSet.getInt("id"));
                     return structure;
                 } else {
@@ -175,7 +184,8 @@ public final class SQLiteDataStore {
                                                                resultSet.getInt("bx"),
                                                                resultSet.getInt("by"),
                                                                resultSet.getInt("bz")),
-                                                    resultSet.getString("json"));
+                                                    resultSet.getString("json"),
+                                                    resultSet.getInt("discovered") != 0);
                 structure.setId(resultSet.getInt("id"));
                 list.add(structure);
             }
@@ -239,6 +249,16 @@ public final class SQLiteDataStore {
         }
     }
 
+    public void updateDiscovered(Structure structure) {
+        try {
+            stmtUpdateDiscovered.setInt(1, structure.isDiscovered() ? 1 : 0);
+            stmtUpdateDiscovered.setInt(2, structure.getId());
+            stmtUpdateDiscovered.executeUpdate();
+        } catch (SQLException sqle) {
+            throw new IllegalStateException(sqle);
+        }
+    }
+
     public void setBiome(int chunkX, int chunkZ, String biome) {
         try {
             stmtInsertBiome.setInt(1, chunkX);
@@ -261,7 +281,7 @@ public final class SQLiteDataStore {
                 NamespacedKey namespacedKey = NamespacedKey.fromString(name);
                 Biome biome = Registry.BIOME.get(namespacedKey);
                 if (biome == null) {
-                    warn("Invalid biome: " + name);
+                    warn("[" + worldName + "] Invalid biome: " + name);
                     return null;
                 }
                 return biome;
@@ -281,7 +301,7 @@ public final class SQLiteDataStore {
                 NamespacedKey namespacedKey = NamespacedKey.fromString(name);
                 Biome biome = Registry.BIOME.get(namespacedKey);
                 if (biome == null) {
-                    warn("Invalid biome: " + name);
+                    warn("[" + worldName + "] Invalid biome: " + name);
                     continue;
                 }
                 result.put(vec, biome);
@@ -289,6 +309,56 @@ public final class SQLiteDataStore {
             return result;
         } catch (SQLException sqle) {
             throw new IllegalStateException(sqle);
+        }
+    }
+
+    public int executeUpdate(String sql) {
+        try (Statement statement = connection.createStatement()) {
+            return statement.executeUpdate(sql);
+        } catch (SQLException sqle) {
+            throw new IllegalStateException(sqle);
+        }
+    }
+
+    public List<Map<String, Object>> executeQuery(String sql) {
+        try (Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery(sql)) {
+            final List<Map<String, Object>> result = new ArrayList<>();
+            final ResultSetMetaData meta = resultSet.getMetaData();
+            final int columnCount = meta.getColumnCount();
+            final List<String> columnNames = new ArrayList<>(columnCount);
+            for (int i = 0; i < columnCount; i += 1) {
+                columnNames.add(meta.getColumnName(i + 1));
+            }
+            while (resultSet.next()) {
+                final Map<String, Object> entry = new LinkedHashMap<>();
+                result.add(entry);
+                for (String columnName : columnNames) {
+                    entry.put(columnName, resultSet.getObject(columnName));
+                }
+            }
+            return result;
+        } catch (SQLException sqle) {
+            throw new IllegalStateException(sqle);
+        }
+    }
+
+    private void updateStructuresTable() {
+        boolean discoveredColumnExists;
+        try (Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery("SELECT `discovered` FROM `structures` LIMIT 1")) {
+            discoveredColumnExists = true;
+        } catch (SQLException sqle) {
+            discoveredColumnExists = false;
+        }
+        if (discoveredColumnExists) return;
+        final String sql = "ALTER TABLE `structures` ADD COLUMN `discovered` INTEGER NOT NULL DEFAULT 0";
+        log("[" + worldName + "] Adding discovered column...");
+        try (Statement statement = connection.createStatement()) {
+            final int result = statement.executeUpdate(sql);
+            log("[" + worldName + "] Added discovered column => " + result);
+        } catch (SQLException sqle) {
+            logger().log(Level.SEVERE, "[" + worldName + "] Adding discovered column: " + sql, sqle);
         }
     }
 }

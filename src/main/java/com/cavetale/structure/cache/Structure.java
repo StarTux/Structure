@@ -7,14 +7,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
+import java.util.logging.Level;
 import lombok.Data;
 import org.bukkit.Keyed;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
+import static com.cavetale.structure.StructurePlugin.logger;
 import static com.cavetale.structure.StructurePlugin.structureCache;
 
 @Data
-public final class Structure implements Keyed {
+public final class Structure implements Keyed, com.cavetale.core.structure.Structure {
     /** The index is unique per world. */
     protected int id;
     protected final String world;
@@ -22,6 +24,7 @@ public final class Structure implements Keyed {
     protected final Vec2i chunk;
     protected final Cuboid boundingBox;
     protected String json;
+    protected boolean discovered;
     /**
      * The children are populated while parsing the JSON data.
      * Vanilla structures use it.  Beyond that it is optional and at
@@ -31,22 +34,36 @@ public final class Structure implements Keyed {
     protected transient int referenceCount; // count referencing StructureRegion instances
     private transient Object data;
 
-    public Structure(final String world, final NamespacedKey key, final Vec2i chunk, final Cuboid boundingBox, final String json) {
+    public Structure(final String world, final NamespacedKey key, final Vec2i chunk, final Cuboid boundingBox, final String json, final boolean discovered) {
         this.world = world;
         this.key = key;
         this.chunk = chunk;
         this.boundingBox = boundingBox;
         this.json = json;
+        this.discovered = discovered;
         if (key.getNamespace().equals("minecraft")) {
-            parseVanillaChildren();
+            try {
+                parseVanillaChildren();
+            } catch (IllegalArgumentException iae) {
+                logger().log(Level.SEVERE, "parseVanillaChildren: " + this);
+            }
         }
+    }
+
+    public Structure(final String world, final NamespacedKey key, final Vec2i chunk, final Cuboid boundingBox, final String json) {
+        this(world, key, chunk, boundingBox, json, false);
     }
 
     @SuppressWarnings("unchecked")
     private void parseVanillaChildren() {
         Map<String, Object> structureMap = (Map<String, Object>) Json.deserialize(json, Map.class);
+        if (structureMap == null) {
+            throw new IllegalArgumentException("Not a map: " + json);
+        }
         List<Map<String, Object>> childMaps = (List<Map<String, Object>>) structureMap.get("Children");
-        if (childMaps == null) throw new IllegalArgumentException("Missing children: " + structureMap);
+        if (childMaps == null) {
+            throw new IllegalArgumentException("Missing children: " + structureMap);
+        }
         for (Map<String, Object> childMap : childMaps) {
             StructurePart part = new StructurePart(childMap);
             children.add(part);
@@ -109,7 +126,10 @@ public final class Structure implements Keyed {
         return referenceCount > 0;
     }
 
-    public com.cavetale.core.structure.Structure toCoreStructure() {
-        return new com.cavetale.core.structure.Structure(key, boundingBox);
+    @Override
+    public void setDiscovered(final boolean value) {
+        if (discovered == value) return;
+        this.discovered = value;
+        structureCache().updateDiscovered(this);
     }
 }

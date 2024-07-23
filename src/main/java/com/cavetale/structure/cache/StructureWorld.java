@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
@@ -22,11 +23,13 @@ import static com.cavetale.structure.StructurePlugin.structurePlugin;
 import static com.cavetale.structure.StructurePlugin.warn;
 import static java.util.Objects.requireNonNull;
 
+@Getter
 @RequiredArgsConstructor
 public final class StructureWorld {
     private final String worldName;
     private final Map<Integer, Structure> structureCache = new HashMap<>();
     private final Map<Vec2i, StructureRegion> regionCache = new HashMap<>();
+    private File sqliteFile;
     private SQLiteDataStore dataStore;
     private BukkitTask pruneTask;
 
@@ -34,8 +37,7 @@ public final class StructureWorld {
         for (Chunk chunk : world.getLoadedChunks()) {
             onChunkLoad(chunk.getX(), chunk.getZ());
         }
-        File worldFolder = world.getWorldFolder();
-        File sqliteFile = new File(worldFolder, "structures.db");
+        sqliteFile = new File(world.getWorldFolder(), "structures.db");
         if (sqliteFile.exists()) {
             dataStore = new SQLiteDataStore(worldName, sqliteFile);
             dataStore.enable();
@@ -64,14 +66,21 @@ public final class StructureWorld {
      * no file is found, the data store will never be created.  This
      * method asserts that it exists and is ready.
      */
-    protected SQLiteDataStore getOrCreateDataStore() {
+    public SQLiteDataStore getOrCreateDataStore() {
         if (dataStore == null) {
             World world = requireNonNull(Bukkit.getWorld(worldName));
-            dataStore = new SQLiteDataStore(worldName, new File(world.getWorldFolder(), "structures.db"));
+            dataStore = new SQLiteDataStore(worldName, sqliteFile);
             dataStore.enable();
             log("[" + worldName + "] Data store enabled");
         }
         return dataStore;
+    }
+
+    public Structure getOrLoadStructure(int id) {
+        Structure result = getStructure(id);
+        return result != null
+            ? result
+            : loadStructure(id);
     }
 
     public Structure at(Vec3i vec) {
@@ -143,7 +152,7 @@ public final class StructureWorld {
         return result;
     }
 
-    protected Structure getStructure(int id) {
+    private Structure getStructure(int id) {
         Structure cached = structureCache.get(id);
         return cached != null
             ? cached
@@ -224,6 +233,10 @@ public final class StructureWorld {
 
     protected void updateStructure(Structure structure) {
         getOrCreateDataStore().updateStructureJson(structure);
+    }
+
+    protected void updateDiscovered(Structure structure) {
+        getOrCreateDataStore().updateDiscovered(structure);
     }
 
     protected Biome biomeAt(Vec3i vec) {
