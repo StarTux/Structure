@@ -83,6 +83,7 @@ public final class SQLiteDataStore {
         } catch (SQLException sqle) {
             throw new IllegalStateException(sqle);
         }
+        updateStructuresTable();
         try {
             stmt = connection.createStatement();
             stmtFindStructureRef = connection.prepareStatement("SELECT * FROM `struct_refs` WHERE `region_x` = ? AND `region_z` = ?");
@@ -99,7 +100,6 @@ public final class SQLiteDataStore {
         } catch (SQLException sqle) {
             throw new IllegalStateException(sqle);
         }
-        updateStructuresTable();
     }
 
     public void disable() {
