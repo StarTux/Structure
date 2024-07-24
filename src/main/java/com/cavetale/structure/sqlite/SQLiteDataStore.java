@@ -89,8 +89,8 @@ public final class SQLiteDataStore {
             stmtFindStructureRef = connection.prepareStatement("SELECT * FROM `struct_refs` WHERE `region_x` = ? AND `region_z` = ?");
             stmtFindStructure = connection.prepareStatement("SELECT * FROM `structures` WHERE `id` = ?");
             stmtInsertStructure = connection.prepareStatement("INSERT INTO `structures`"
-                                                              + " (`type`, `chunk_x`, `chunk_z`, `ax`, `ay`, `az`, `bx`, `by`, `bz`, `json`)"
-                                                              + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                                                              + " (`type`, `chunk_x`, `chunk_z`, `ax`, `ay`, `az`, `bx`, `by`, `bz`, `json`, `discovered`)"
+                                                              + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                                                               Statement.RETURN_GENERATED_KEYS);
             stmtUpdateStructure = connection.prepareStatement("UPDATE `structures` SET `json` = ? WHERE `id` = ?");
             stmtUpdateDiscovered = connection.prepareStatement("UPDATE `structures` SET `discovered` = ? WHERE `id` = ?");
@@ -212,6 +212,7 @@ public final class SQLiteDataStore {
             stmtInsertStructure.setInt(8, cuboid.by);
             stmtInsertStructure.setInt(9, cuboid.bz);
             stmtInsertStructure.setString(10, structure.getJson());
+            stmtInsertStructure.setInt(11, structure.isDiscovered() ? 1 : 0);
             final int structureId;
             stmtInsertStructure.executeUpdate();
             try (ResultSet generatedKeys = stmtInsertStructure.getGeneratedKeys()) {
