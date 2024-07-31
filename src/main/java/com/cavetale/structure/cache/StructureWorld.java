@@ -34,9 +34,6 @@ public final class StructureWorld {
     private BukkitTask pruneTask;
 
     protected void enable(World world) {
-        for (Chunk chunk : world.getLoadedChunks()) {
-            onChunkLoad(chunk.getX(), chunk.getZ());
-        }
         sqliteFile = new File(world.getWorldFolder(), "structures.db");
         if (sqliteFile.exists()) {
             dataStore = new SQLiteDataStore(worldName, sqliteFile);
@@ -46,6 +43,9 @@ public final class StructureWorld {
             warn("[" + worldName + "] Data store not found");
         }
         pruneTask = Bukkit.getScheduler().runTaskTimer(structurePlugin(), this::prune, 200L, 200L);
+        for (Chunk chunk : world.getLoadedChunks()) {
+            onChunkLoad(chunk.getX(), chunk.getZ());
+        }
     }
 
     protected void disable() {
