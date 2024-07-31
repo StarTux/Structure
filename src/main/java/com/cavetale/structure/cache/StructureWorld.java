@@ -103,6 +103,9 @@ public final class StructureWorld {
             for (int regionX = rax; regionX <= rbx; regionX += 1) {
                 StructureRegion region = getRegion(regionX, regionZ);
                 for (Structure structure : region.structures) {
+                    if (list.contains(structure)) {
+                        continue;
+                    }
                     if (cuboid.overlaps(structure.boundingBox)) {
                         list.add(structure);
                     }
