@@ -38,6 +38,10 @@ public final class StructureCommand extends AbstractCommand<StructurePlugin> {
                         CommandArgCompleter.integer(i -> i > 0),
                         CommandArgCompleter.BOOLEAN)
             .senderCaller(this::discovered);
+        rootNode.addChild("worldinfo").arguments("<world>")
+            .description("Print world info")
+            .completers(CommandArgCompleter.supplyList(() -> List.copyOf(plugin.getStructureCache().getWorlds().keySet())))
+            .senderCaller(this::worldInfo);
         // Player Commands
         rootNode.addChild("here").denyTabCompletion()
             .description("Show current structure")
@@ -87,6 +91,19 @@ public final class StructureCommand extends AbstractCommand<StructurePlugin> {
         return true;
     }
 
+    private boolean worldInfo(CommandSender sender, String[] args) {
+        if (args.length != 1) return false;
+        final String worldName = args[0];
+        final StructureWorld structureWorld = plugin.getStructureCache().getWorlds().get(worldName);
+        if (structureWorld == null) {
+            throw new CommandWarn("World not found: " + worldName);
+        }
+        sender.sendMessage(textOfChildren(text("World ", GRAY), text(structureWorld.getWorldName())));
+        sender.sendMessage(textOfChildren(text("  Cached Structures ", GRAY), text(structureWorld.getStructureCache().size())));
+        sender.sendMessage(textOfChildren(text("  Cached Regions ", GRAY), text(structureWorld.getRegionCache().size())));
+        return true;
+    }
+
     private boolean discovered(CommandSender sender, String[] args) {
         if (args.length != 3) return false;
         final String worldName = args[0];
@@ -116,14 +133,14 @@ public final class StructureCommand extends AbstractCommand<StructurePlugin> {
     }
 
     private void here(Player player) {
-        Block block = player.getLocation().getBlock();
-        Structure structure = plugin.getStructureCache().at(block);
-        String xyz = block.getX() + " " + block.getY() + " " + block.getZ();
+        final Block block = player.getLocation().getBlock();
+        final Structure structure = plugin.getStructureCache().at(block);
         if (structure == null) {
+            final String xyz = block.getX() + " " + block.getY() + " " + block.getZ();
             throw new CommandWarn("No structure here: " + block.getWorld().getName() + " " + xyz);
         }
         player.sendMessage(textOfChildren(text("Structure #" + structure.getId(), GRAY),
-                                          text("" + structure.getKey(), YELLOW),
+                                          text(" " + structure.getKey(), YELLOW),
                                           text(" (" + structure.getBoundingBox() + ")", GRAY),
                                           text(" disovered=" + structure.isDiscovered(), AQUA),
                                           text(" children=" + structure.getChildren().size(), AQUA)));
@@ -141,10 +158,10 @@ public final class StructureCommand extends AbstractCommand<StructurePlugin> {
     }
 
     private void highlight(Player player) {
-        Block block = player.getLocation().getBlock();
-        Structure structure = plugin.getStructureCache().at(block);
-        String xyz = block.getX() + " " + block.getY() + " " + block.getZ();
+        final Block block = player.getLocation().getBlock();
+        final Structure structure = plugin.getStructureCache().at(block);
         if (structure == null) {
+            final String xyz = block.getX() + " " + block.getY() + " " + block.getZ();
             throw new CommandWarn("No structure here: " + block.getWorld().getName() + " " + xyz);
         }
         structure.getBoundingBox().highlight(player.getWorld(), 0.0, loc -> player.spawnParticle(Particle.HAPPY_VILLAGER, loc, 1, 0.0, 0.0, 0.0, 0.0));
@@ -156,16 +173,16 @@ public final class StructureCommand extends AbstractCommand<StructurePlugin> {
 
     private boolean nearby(Player player, String[] args) {
         if (args.length > 2) return false;
-        Block block = player.getLocation().getBlock();
+        final Block block = player.getLocation().getBlock();
         int r = args.length >= 1
             ? CommandArgCompleter.requireInt(args[0], i -> i > 0)
             : 64;
-        Cuboid cuboid = new Cuboid(block.getX() - r, block.getWorld().getMinHeight(), block.getZ() - r,
-                                   block.getX() + r, block.getWorld().getMaxHeight(), block.getZ() + r);
+        final Cuboid cuboid = new Cuboid(block.getX() - r, block.getWorld().getMinHeight(), block.getZ() - r,
+                                         block.getX() + r, block.getWorld().getMaxHeight(), block.getZ() + r);
         player.sendMessage(text("Finding structures within " + r + " block radius:", YELLOW));
         for (Structure structure : plugin.getStructureCache().within(player.getWorld().getName(), cuboid)) {
             player.sendMessage(textOfChildren(text("- Structure #" + structure.getId(), GRAY),
-                                              text("" + structure.getKey(), YELLOW),
+                                              text(" " + structure.getKey(), YELLOW),
                                               text(" (" + structure.getBoundingBox() + ")", GRAY),
                                               text(" discovered:", GRAY), text("" + structure.isDiscovered(), AQUA),
                                               text(" children:", GRAY), text(structure.getChildren().size(), AQUA),
@@ -176,7 +193,7 @@ public final class StructureCommand extends AbstractCommand<StructurePlugin> {
     }
 
     private void biome(Player player) {
-        Block block = player.getLocation().getBlock();
+        final Block block = player.getLocation().getBlock();
         player.sendMessage(textOfChildren(text("Biome at ", GRAY),
                                           text(block.getX()), text(",", GRAY),
                                           text(block.getY()), text(",", GRAY),
