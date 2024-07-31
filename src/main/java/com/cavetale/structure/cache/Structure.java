@@ -19,7 +19,7 @@ import static com.cavetale.structure.StructurePlugin.structureCache;
 public final class Structure implements Keyed, com.cavetale.core.structure.Structure {
     /** The index is unique per world. */
     protected int id;
-    protected final String world;
+    protected final String worldName;
     protected final NamespacedKey key;
     protected final Vec2i chunk;
     protected final Cuboid boundingBox;
@@ -34,8 +34,8 @@ public final class Structure implements Keyed, com.cavetale.core.structure.Struc
     protected transient int referenceCount; // count referencing StructureRegion instances
     private transient Object data;
 
-    public Structure(final String world, final NamespacedKey key, final Vec2i chunk, final Cuboid boundingBox, final String json, final boolean discovered) {
-        this.world = world;
+    public Structure(final String worldName, final NamespacedKey key, final Vec2i chunk, final Cuboid boundingBox, final String json, final boolean discovered) {
+        this.worldName = worldName;
         this.key = key;
         this.chunk = chunk;
         this.boundingBox = boundingBox;
@@ -50,8 +50,8 @@ public final class Structure implements Keyed, com.cavetale.core.structure.Struc
         }
     }
 
-    public Structure(final String world, final NamespacedKey key, final Vec2i chunk, final Cuboid boundingBox, final String json) {
-        this(world, key, chunk, boundingBox, json, false);
+    public Structure(final String worldName, final NamespacedKey key, final Vec2i chunk, final Cuboid boundingBox, final String json) {
+        this(worldName, key, chunk, boundingBox, json, false);
     }
 
     @SuppressWarnings("unchecked")
@@ -124,6 +124,11 @@ public final class Structure implements Keyed, com.cavetale.core.structure.Struc
 
     public boolean isLoaded() {
         return referenceCount > 0;
+    }
+
+    @Override
+    public int getInternalId() {
+        return id;
     }
 
     @Override

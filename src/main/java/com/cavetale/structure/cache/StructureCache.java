@@ -35,8 +35,10 @@ public final class StructureCache {
 
     public StructureWorld getWorld(World world) {
         StructureWorld result = worlds.get(world.getName());
-        if (result == null) enable(world);
-        return enable(world);
+        if (result == null) {
+            result = enable(world);
+        }
+        return result;
     }
 
     public void disable() {
@@ -94,7 +96,7 @@ public final class StructureCache {
     }
 
     public void addStructure(Structure structure) {
-        StructureWorld structureWorld = worlds.get(structure.getWorld());
+        StructureWorld structureWorld = worlds.get(structure.getWorldName());
         if (structureWorld == null) throw new IllegalStateException("World not found: " + structure);
         structureWorld.addStructure(structure);
     }
@@ -104,7 +106,7 @@ public final class StructureCache {
      * Usually called by Structure#saveJsonData().
      */
     public void updateStructure(Structure structure) {
-        StructureWorld structureWorld = worlds.get(structure.getWorld());
+        StructureWorld structureWorld = worlds.get(structure.getWorldName());
         if (structureWorld == null) {
             throw new IllegalStateException("World not found: " + structure);
         }
@@ -116,7 +118,7 @@ public final class StructureCache {
      * Usually called by Structure#setDiscovered().
      */
     public void updateDiscovered(Structure structure) {
-        StructureWorld structureWorld = worlds.get(structure.getWorld());
+        StructureWorld structureWorld = worlds.get(structure.getWorldName());
         if (structureWorld == null) {
             throw new IllegalStateException("World not found: " + structure);
         }
