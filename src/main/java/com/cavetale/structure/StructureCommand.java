@@ -5,6 +5,7 @@ import com.cavetale.core.command.CommandArgCompleter;
 import com.cavetale.core.command.CommandNode;
 import com.cavetale.core.command.CommandWarn;
 import com.cavetale.core.struct.Cuboid;
+import com.cavetale.core.struct.Vec3i;
 import com.cavetale.core.util.Json;
 import com.cavetale.structure.cache.Structure;
 import com.cavetale.structure.cache.StructurePart;
@@ -18,6 +19,8 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import static net.kyori.adventure.text.Component.text;
 import static net.kyori.adventure.text.Component.textOfChildren;
+import static net.kyori.adventure.text.event.ClickEvent.suggestCommand;
+import static net.kyori.adventure.text.event.HoverEvent.showText;
 import static net.kyori.adventure.text.format.NamedTextColor.*;
 
 public final class StructureCommand extends AbstractCommand<StructurePlugin> {
@@ -181,13 +184,19 @@ public final class StructureCommand extends AbstractCommand<StructurePlugin> {
                                          block.getX() + r, block.getWorld().getMaxHeight(), block.getZ() + r);
         player.sendMessage(text("Finding structures within " + r + " block radius:", YELLOW));
         for (Structure structure : plugin.getStructureCache().within(player.getWorld().getName(), cuboid)) {
+            final Vec3i center = structure.getBoundingBox().getCenter();
+            final String coords = center.x + " " + center.y + " " + center.z;
+            final String command = "/tp " + player.getName() + " " + coords;
             player.sendMessage(textOfChildren(text("- Structure #" + structure.getId(), GRAY),
                                               text(" " + structure.getKey(), YELLOW),
                                               text(" (" + structure.getBoundingBox() + ")", GRAY),
                                               text(" discovered:", GRAY), text("" + structure.isDiscovered(), AQUA),
                                               text(" children:", GRAY), text(structure.getChildren().size(), AQUA),
                                               text(" vanilla:", GRAY), text("" + structure.isVanilla(), AQUA),
-                                              text(" inside:", GRAY), text("" + structure.getBoundingBox().contains(block), AQUA)));
+                                              text(" inside:", GRAY), text("" + structure.getBoundingBox().contains(block), AQUA))
+                               .hoverEvent(showText(text(command, GRAY)))
+                               .clickEvent(suggestCommand(command))
+                               .insertion(coords));
         }
         return true;
     }
