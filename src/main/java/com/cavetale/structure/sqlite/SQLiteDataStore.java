@@ -13,9 +13,11 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.NamespacedKey;
@@ -38,6 +40,8 @@ public final class SQLiteDataStore {
     private PreparedStatement stmtInsertBiome;
     private PreparedStatement stmtFindBiome;
     private PreparedStatement stmtGetAllBiomes;
+    private PreparedStatement stmtGetAllStructureTypes;
+    private PreparedStatement stmtDiscoveredStats;
     private Statement stmt;
 
     public void enable() {
@@ -97,6 +101,8 @@ public final class SQLiteDataStore {
             stmtInsertBiome = connection.prepareStatement("INSERT INTO `biomes` (`chunk_x`, `chunk_z`, `biome`) VALUES (?, ?, ?)");
             stmtFindBiome = connection.prepareStatement("SELECT `biome` FROM `biomes` WHERE `chunk_x` = ? AND `chunk_z` = ?");
             stmtGetAllBiomes = connection.prepareStatement("SELECT * FROM `biomes`");
+            stmtGetAllStructureTypes = connection.prepareStatement("SELECT `type` FROM `structures` GROUP BY `type`");
+            stmtDiscoveredStats = connection.prepareStatement("SELECT COUNT(*) `count`, `discovered` FROM `structures` WHERE `type` = ? GROUP BY `discovered`");
         } catch (SQLException sqle) {
             throw new IllegalStateException(sqle);
         }
@@ -112,6 +118,8 @@ public final class SQLiteDataStore {
             stmtInsertBiome.close();
             stmtFindBiome.close();
             stmtGetAllBiomes.close();
+            stmtGetAllStructureTypes.close();
+            stmtDiscoveredStats.close();
             stmt.close();
             connection.close();
         } catch (SQLException sqle) {
@@ -311,6 +319,41 @@ public final class SQLiteDataStore {
         } catch (SQLException sqle) {
             throw new IllegalStateException(sqle);
         }
+    }
+
+    public Set<String> getAllStructureTypes() {
+        final Set<String> result = new HashSet<>();
+        try (ResultSet resultSet = stmtGetAllStructureTypes.executeQuery()) {
+            while (resultSet.next()) {
+                result.add(resultSet.getString("type"));
+            }
+        } catch (SQLException sqle) {
+            throw new IllegalStateException(sqle);
+        }
+        return result;
+    }
+
+    /**
+     * Return 2 integers: The number of undiscovered and discovered
+     * instances of that structure type, followed by the total number,
+     * in that order.
+     */
+    public int[] getDiscoveredStats(String structureType) {
+        int[] result = new int[3];
+        try {
+            stmtDiscoveredStats.setString(1, structureType);
+            try (ResultSet resultSet = stmtDiscoveredStats.executeQuery()) {
+                while (resultSet.next()) {
+                    final int discovered = resultSet.getInt("discovered");
+                    final int count = resultSet.getInt("count");
+                    result[discovered] = count;
+                }
+            }
+        } catch (SQLException sqle) {
+            throw new IllegalStateException(sqle);
+        }
+        result[2] = result[0] + result[1];
+        return result;
     }
 
     public int executeUpdate(String sql) {

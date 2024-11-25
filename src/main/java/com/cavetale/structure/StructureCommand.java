@@ -1,4 +1,4 @@
-package com.cavetale.structure;
+ package com.cavetale.structure;
 
 import com.cavetale.core.command.AbstractCommand;
 import com.cavetale.core.command.CommandArgCompleter;
@@ -10,15 +10,20 @@ import com.cavetale.core.util.Json;
 import com.cavetale.structure.cache.Structure;
 import com.cavetale.structure.cache.StructurePart;
 import com.cavetale.structure.cache.StructureWorld;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Particle;
 import org.bukkit.block.Block;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import static net.kyori.adventure.text.Component.join;
 import static net.kyori.adventure.text.Component.text;
 import static net.kyori.adventure.text.Component.textOfChildren;
+import static net.kyori.adventure.text.JoinConfiguration.separator;
 import static net.kyori.adventure.text.event.ClickEvent.suggestCommand;
 import static net.kyori.adventure.text.event.HoverEvent.showText;
 import static net.kyori.adventure.text.format.NamedTextColor.*;
@@ -45,6 +50,14 @@ public final class StructureCommand extends AbstractCommand<StructurePlugin> {
             .description("Print world info")
             .completers(CommandArgCompleter.supplyList(() -> List.copyOf(plugin.getStructureCache().getWorlds().keySet())))
             .senderCaller(this::worldInfo);
+        rootNode.addChild("liststructuretypes").arguments("<world>")
+            .completers(CommandArgCompleter.supplyList(() -> List.copyOf(plugin.getStructureCache().getWorlds().keySet())))
+            .description("List all structure types")
+            .senderCaller(this::listStructureTypes);
+        rootNode.addChild("discoveredstats").arguments("<world> <type>")
+            .completers(CommandArgCompleter.supplyList(() -> List.copyOf(plugin.getStructureCache().getWorlds().keySet())))
+            .description("Find how many of a structure have been discovered")
+            .senderCaller(this::discoveredStats);
         // Player Commands
         rootNode.addChild("here").denyTabCompletion()
             .description("Show current structure")
@@ -59,6 +72,7 @@ public final class StructureCommand extends AbstractCommand<StructurePlugin> {
         rootNode.addChild("biome").denyTabCompletion()
             .description("Get biome")
             .playerCaller(this::biome);
+        // SQLite Commands
         final CommandNode sqliteNode = rootNode.addChild("sqlite")
             .description("SQLite commands");
         sqliteNode.addChild("update").arguments("<world> <sql...>")
@@ -104,6 +118,47 @@ public final class StructureCommand extends AbstractCommand<StructurePlugin> {
         sender.sendMessage(textOfChildren(text("World ", GRAY), text(structureWorld.getWorldName())));
         sender.sendMessage(textOfChildren(text("  Cached Structures ", GRAY), text(structureWorld.getStructureCache().size())));
         sender.sendMessage(textOfChildren(text("  Cached Regions ", GRAY), text(structureWorld.getRegionCache().size())));
+        return true;
+    }
+
+    private boolean listStructureTypes(CommandSender sender, String[] args) {
+        if (args.length != 1) return false;
+        final String worldName = args[0];
+        final StructureWorld structureWorld = plugin.getStructureCache().getWorlds().get(worldName);
+        if (structureWorld == null) {
+            throw new CommandWarn("World not found: " + worldName);
+        }
+        final List<String> structureTypes = new ArrayList<>(structureWorld.getDataStore().getAllStructureTypes());
+        Collections.sort(structureTypes);
+        final List<Component> components = new ArrayList<>(structureTypes.size());
+        for (String structureType : structureTypes) {
+            components.add(text(structureType)
+                           .hoverEvent(showText(text(structureType, GRAY)))
+                           .clickEvent(suggestCommand("/structure discoveredstats " + structureWorld.getWorldName() + " " + structureType))
+                           .insertion(structureType));
+        }
+        sender.sendMessage(text(structureTypes.size() + " structure types in " + structureWorld.getWorldName(), GRAY));
+        sender.sendMessage(join(separator(text(", ", GRAY)), components));
+        return true;
+    }
+
+    private boolean discoveredStats(CommandSender sender, String[] args) {
+        if (args.length != 2) return false;
+        final String worldName = args[0];
+        final StructureWorld structureWorld = plugin.getStructureCache().getWorlds().get(worldName);
+        if (structureWorld == null) {
+            throw new CommandWarn("World not found: " + worldName);
+        }
+        final String structureType = args[1];
+        int[] stats = structureWorld.getDataStore().getDiscoveredStats(structureType);
+        if (stats[2] == 0) {
+            throw new CommandWarn("Structure type not found: " + structureType);
+        }
+        sender.sendMessage(textOfChildren(text("World ", GRAY), text(structureWorld.getWorldName())));
+        sender.sendMessage(textOfChildren(text("Structure ", GRAY), text(structureType)));
+        sender.sendMessage(textOfChildren(text("Total ", GRAY), text(stats[2])));
+        sender.sendMessage(textOfChildren(text("Discovered ", GRAY), text(stats[1], GREEN), text(" (" + ((100 * stats[1]) / stats[2]) + "%)", AQUA)));
+        sender.sendMessage(textOfChildren(text("Undiscovered ", GRAY), text(stats[0], RED), text(" (" + ((100 * stats[0]) / stats[2]) + "%)", AQUA)));
         return true;
     }
 
