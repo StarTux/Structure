@@ -3,6 +3,7 @@ package com.cavetale.structure.sqlite;
 import com.cavetale.core.struct.Cuboid;
 import com.cavetale.core.struct.Vec2i;
 import com.cavetale.structure.cache.Structure;
+import io.papermc.paper.registry.RegistryKey;
 import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -21,11 +22,11 @@ import java.util.Set;
 import java.util.logging.Level;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.NamespacedKey;
-import org.bukkit.Registry;
 import org.bukkit.block.Biome;
 import static com.cavetale.structure.StructurePlugin.log;
 import static com.cavetale.structure.StructurePlugin.logger;
 import static com.cavetale.structure.StructurePlugin.warn;
+import static io.papermc.paper.registry.RegistryAccess.registryAccess;
 
 @RequiredArgsConstructor
 public final class SQLiteDataStore {
@@ -288,7 +289,7 @@ public final class SQLiteDataStore {
                 String name = resultSet.getString("biome");
                 if (name == null) return null;
                 NamespacedKey namespacedKey = NamespacedKey.fromString(name);
-                Biome biome = Registry.BIOME.get(namespacedKey);
+                Biome biome = registryAccess().getRegistry(RegistryKey.BIOME).get(namespacedKey);
                 if (biome == null) {
                     warn("[" + worldName + "] Invalid biome: " + name);
                     return null;
@@ -308,7 +309,7 @@ public final class SQLiteDataStore {
                                       resultSet.getInt("chunk_z"));
                 String name = resultSet.getString("biome");
                 NamespacedKey namespacedKey = NamespacedKey.fromString(name);
-                Biome biome = Registry.BIOME.get(namespacedKey);
+                Biome biome = registryAccess().getRegistry(RegistryKey.BIOME).get(namespacedKey);
                 if (biome == null) {
                     warn("[" + worldName + "] Invalid biome: " + name);
                     continue;
