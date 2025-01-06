@@ -88,9 +88,22 @@ public final class StructureWorld {
         final int regionZ = vec.z >> 9;
         StructureRegion region = getRegion(regionX, regionZ);
         for (Structure structure : region.structures) {
-            if (structure.boundingBox.contains(vec)) return structure;
+            if (!structure.boundingBox.contains(vec)) continue;
+            if (structure.hasChildren() && !structure.childContains(vec)) continue;
+            return structure;
         }
         return null;
+    }
+
+    public List<Structure> allAt(Vec3i vec) {
+        final int regionX = vec.x >> 9;
+        final int regionZ = vec.z >> 9;
+        StructureRegion region = getRegion(regionX, regionZ);
+        final List<Structure> result = new ArrayList<>();
+        for (Structure structure : region.structures) {
+            if (structure.boundingBox.contains(vec)) result.add(structure);
+        }
+        return result;
     }
 
     public List<Structure> within(Cuboid cuboid) {

@@ -60,7 +60,7 @@ public final class StructureCommand extends AbstractCommand<StructurePlugin> {
             .senderCaller(this::discoveredStats);
         // Player Commands
         rootNode.addChild("here").denyTabCompletion()
-            .description("Show current structure")
+            .description("Show current structures")
             .playerCaller(this::here);
         rootNode.addChild("highlight").denyTabCompletion()
             .description("Highlight current structure")
@@ -192,27 +192,30 @@ public final class StructureCommand extends AbstractCommand<StructurePlugin> {
 
     private void here(Player player) {
         final Block block = player.getLocation().getBlock();
-        final Structure structure = plugin.getStructureCache().at(block);
-        if (structure == null) {
-            final String xyz = block.getX() + " " + block.getY() + " " + block.getZ();
+        final List<Structure> structures = plugin.getStructureCache().allAt(block);
+        final String xyz = block.getX() + " " + block.getY() + " " + block.getZ();
+        if (structures.isEmpty()) {
             throw new CommandWarn("No structure here: " + block.getWorld().getName() + " " + xyz);
         }
-        player.sendMessage(textOfChildren(text("Structure #" + structure.getId(), GRAY),
-                                          text(" " + structure.getKey(), YELLOW),
-                                          text(" (" + structure.getBoundingBox() + ")", GRAY),
-                                          text(" disovered=" + structure.isDiscovered(), AQUA),
-                                          text(" children=" + structure.getChildren().size(), AQUA)));
-        for (StructurePart part : structure.getChildren()) {
-            if (!part.getBoundingBox().contains(block)) {
-                continue;
+        for (Structure structure : structures) {
+            player.sendMessage(textOfChildren(text("Structure #" + structure.getId(), GRAY),
+                                              text(" " + structure.getKey(), YELLOW),
+                                              text(" (" + structure.getBoundingBox() + ")", GRAY),
+                                              text(" disovered=" + structure.isDiscovered(), AQUA),
+                                              text(" children=" + structure.getChildren().size(), AQUA)));
+            for (StructurePart part : structure.getChildren()) {
+                if (!part.getBoundingBox().contains(block)) {
+                    continue;
+                }
+                player.sendMessage(textOfChildren(text("- StructurePart ", GRAY),
+                                                  text(part.getId(), YELLOW),
+                                                  text(" (" + part.getBoundingBox() + ")", GRAY)));
             }
-            player.sendMessage(textOfChildren(text("- StructurePart ", GRAY),
-                                              text(part.getId(), YELLOW),
-                                              text(" (" + part.getBoundingBox() + ")", GRAY)));
+            if (!structure.isVanilla()) {
+                player.sendMessage(text("json=" + structure.getJson(), YELLOW));
+            }
         }
-        if (!structure.isVanilla()) {
-            player.sendMessage(text("json=" + structure.getJson(), YELLOW));
-        }
+        player.sendMessage(text("Total " + structures.size() + " structure(s) at " + xyz, YELLOW));
     }
 
     private void highlight(Player player) {

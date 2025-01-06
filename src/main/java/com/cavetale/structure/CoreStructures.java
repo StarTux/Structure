@@ -47,6 +47,15 @@ public final class CoreStructures implements Structures {
     }
 
     @Override
+    public List<com.cavetale.core.structure.Structure> getAllStructuresAt(Block block) {
+        List<com.cavetale.core.structure.Structure> result = new ArrayList<>();
+        for (Structure it : plugin.getStructureCache().allAt(block)) {
+            result.add(it);
+        }
+        return result;
+    }
+
+    @Override
     public List<com.cavetale.core.structure.Structure> getStructuresWithin(World world, Cuboid cuboid) {
         List<com.cavetale.core.structure.Structure> result = new ArrayList<>();
         for (Structure it : plugin.getStructureCache().within(world.getName(), cuboid)) {

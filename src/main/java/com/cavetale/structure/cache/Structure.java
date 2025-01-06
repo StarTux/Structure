@@ -2,6 +2,7 @@ package com.cavetale.structure.cache;
 
 import com.cavetale.core.struct.Cuboid;
 import com.cavetale.core.struct.Vec2i;
+import com.cavetale.core.struct.Vec3i;
 import com.cavetale.core.util.Json;
 import java.util.ArrayList;
 import java.util.List;
@@ -77,8 +78,16 @@ public final class Structure implements Keyed, com.cavetale.core.structure.Struc
         return null;
     }
 
+    public boolean hasChildren() {
+        return !children.isEmpty();
+    }
+
     public StructurePart getChildAt(Block block) {
         return getChildAt(block.getX(), block.getY(), block.getZ());
+    }
+
+    public boolean childContains(Vec3i vector) {
+        return getChildAt(vector.x, vector.y, vector.z) != null;
     }
 
     @Override

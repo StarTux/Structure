@@ -52,11 +52,22 @@ public final class StructureCache {
         return at(block.getWorld().getName(), Vec3i.of(block));
     }
 
+    public List<Structure> allAt(Block block) {
+        return allAt(block.getWorld().getName(), Vec3i.of(block));
+    }
+
     public Structure at(String worldName, Vec3i vector) {
         StructureWorld sworld = worlds.get(worldName);
         return sworld != null
             ? sworld.at(vector)
             : null;
+    }
+
+    public List<Structure> allAt(String worldName, Vec3i vector) {
+        StructureWorld sworld = worlds.get(worldName);
+        return sworld != null
+            ? sworld.allAt(vector)
+            : List.of();
     }
 
     public List<Structure> within(String worldName, Cuboid cuboid) {
